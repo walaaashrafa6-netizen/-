@@ -1,0 +1,81 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-cosmos-bg: #07111F;
+  --color-cosmos-main: #0C1B2B;
+  --color-cosmos-secondary: #11263A;
+  --color-cosmos-border: #162E48;
+  --color-astra-cyan: #42C8F5;
+  --color-status-normal: #35C98A;
+  --color-status-warning: #F2B84B;
+  --color-status-emergency: #E85D65;
+  --color-text-primary: #F2F6FA;
+  --color-text-secondary: #A9B8C8;
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: 'Chakra Petch', sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #07111F;
+  color: #F2F6FA;
+  overflow-x: hidden;
+}
+
+/* Deep space with stars and celestial illumination */
+.bg-deep-cosmos {
+  background-color: #07111F;
+  background-image: 
+    radial-gradient(circle at 85% 15%, rgba(66, 200, 245, 0.10) 0%, transparent 45%),
+    radial-gradient(circle at 15% 85%, rgba(139, 124, 255, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(12, 27, 43, 0.4) 0%, transparent 70%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+}
+
+/* Aerospace Card Surface matching reference (#0C1B2B) */
+.glass-panel {
+  background: linear-gradient(135deg, rgba(12, 27, 43, 0.92) 0%, rgba(7, 17, 31, 0.96) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(66, 200, 245, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-panel-glow {
+  background: linear-gradient(135deg, rgba(17, 38, 58, 0.92) 0%, rgba(12, 27, 43, 0.96) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(66, 200, 245, 0.35);
+  box-shadow: 0 10px 30px rgba(66, 200, 245, 0.14), inset 0 0 15px rgba(66, 200, 245, 0.06);
+}
+
+.glass-pill-active {
+  background: linear-gradient(90deg, #1A3E62 0%, #0099DD 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 20px rgba(66, 200, 245, 0.35);
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #07111F;
+}
+::-webkit-scrollbar-thumb {
+  background: #162E48;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #42C8F555;
+}

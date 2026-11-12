@@ -1,0 +1,6 @@
+{
+  "name": "ASTRA — Astronaut Health Companion",
+  "description": "Spaceflight wellness companion consolidating sleep, respiratory vitals, mental wellbeing, and mission timeline context.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
