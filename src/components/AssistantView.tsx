@@ -1,30 +1,26 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { SleepRecord, WellnessRecord, RespiratoryRecord, Language } from '../types';
-import { TRANSLATIONS } from '../utils/translations';
+import React, { useEffect, useRef, useState } from 'react';
+import { Language, RespiratoryRecord, SleepRecord, WellnessRecord } from '../types';
 import { formatDuration } from '../utils/storage';
-import { 
-  Sparkles, 
-  Send, 
-  Bot, 
-  User, 
-  ShieldCheck, 
-  Info, 
-  AlertTriangle,
-  Lightbulb,
-  Radio,
+import { generateLocalEngineResponse } from '../utils/localContextEngine';
+import {
+  ArrowUpRight,
+  Bot,
+  Check,
+  ChevronDown,
+  Copy,
   Mic,
   MicOff,
+  Orbit,
+  Plus,
+  Radio,
+  RotateCcw,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  User,
   Volume2,
   VolumeX,
-  RotateCcw,
-  Copy,
-  Check,
-  Compass,
-  ArrowRight,
-  ShieldAlert,
-  Cpu
 } from 'lucide-react';
-import { generateLocalEngineResponse, searchLocalKnowledgeBase } from '../utils/localContextEngine';
 
 interface ChatMessage {
   id: string;
@@ -40,152 +36,74 @@ interface AssistantViewProps {
   lang: Language;
 }
 
+const STAR_POSITIONS = [
+  ['8%', '17%'], ['19%', '9%'], ['31%', '22%'], ['47%', '11%'], ['65%', '18%'],
+  ['78%', '8%'], ['91%', '23%'], ['13%', '71%'], ['28%', '82%'], ['53%', '75%'],
+  ['72%', '86%'], ['88%', '67%'], ['39%', '57%'], ['6%', '48%'], ['96%', '48%'],
+];
+
 export const AssistantView: React.FC<AssistantViewProps> = ({
   sleepRecords,
   wellnessRecords,
   respiratoryRecords,
   lang,
 }) => {
-  const t = TRANSLATIONS[lang];
-
-  // Latest calculations to supply rich astronaut context
+  const isAr = lang === 'ar';
   const latestSleep = sleepRecords[sleepRecords.length - 1];
   const latestWellness = wellnessRecords[wellnessRecords.length - 1];
   const latestResp = respiratoryRecords[respiratoryRecords.length - 1];
-
-  const avgSleep = sleepRecords.length > 0
-    ? Math.round(sleepRecords.reduce((a, b) => a + b.durationMinutes, 0) / sleepRecords.length)
+  const avgSleep = sleepRecords.length
+    ? Math.round(sleepRecords.reduce((sum, record) => sum + record.durationMinutes, 0) / sleepRecords.length)
     : 460;
-  const sleepDeficit = 480 - avgSleep;
-
-  // Initial welcome message
-  const getInitialMessages = (): ChatMessage[] => [
-    {
-      id: 'msg-welcome',
-      role: 'assistant',
-      content: lang === 'ar'
-        ? `مرحباً بك، القائدة سارة تشين. أنا ASTRA — رفيقك المعرفي والصحي الذكي في المهمة.\n\nلقد اطلعت على سجلاتك الفضائية الحالية:\n- **متوسط النوم (7 أيام)**: ${formatDuration(avgSleep)} ${sleepDeficit > 0 ? `(عجز ${formatDuration(sleepDeficit)} عن هدف الـ 8 ساعات)` : '(مطابق لهدف المهمة)'}.\n- **الحالة النفسية والجاهزية**: توتر معتدل (${latestWellness?.stressRating || 2}/5)، وطاقة جيدة (${latestWellness?.energyRating || 4}/5).\n- **معدل التنفس**: ${latestResp?.respiratoryRate || 16} نفس/دقيقة (بيانات محاكاة اسمية).\n\nأنا هنا للتحاور معك بعمق وسلاسة تماماً مثل أحدث أنظمة الذكاء الاصطناعي — يمكنك استشارتي في التكيف مع انعدام الوزن، تحليل الإجهاد التراكمي، إرشادات التمارين على ARED، أو أي سؤال يدور في ذهنك أثناء تواجدك في المدار. كيف تشعرين الآن؟`
-        : `Welcome back, Commander Chen. I am ASTRA, your mission cognitive twin and wellness companion.\n\nI have synchronized your active flight records:\n- **7-Day Sleep Baseline**: ${formatDuration(avgSleep)} ${sleepDeficit > 0 ? `(${formatDuration(sleepDeficit)} cumulative deficit vs 8.0h target)` : '(Target met)'}.\n- **Psychological Readiness**: Perceived stress ${latestWellness?.stressRating || 2}/5, energy ${latestWellness?.energyRating || 4}/5.\n- **Respiratory Cadence**: ${latestResp?.respiratoryRate || 16} breaths/min (Nominal rest baseline).\n\nI am engineered for deep, fluent, multi-turn conversations — whether you want to decompress, dissect circadian shift strategies, review countermeasure protocols on the ARED/T2, or discuss microgravity fluid redistribution. What is on your mind today?`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ];
-
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
       const saved = localStorage.getItem('astra_chat_history');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return getInitialMessages();
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch { /* Start a fresh conversation when storage is unavailable. */ }
+    return [];
   });
-
-  const [input, setInput] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [isListening, setIsListening] = useState<boolean>(false);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to bottom of chat
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const welcomeMessage: ChatMessage = {
+    id: 'astra-welcome',
+    role: 'assistant',
+    content: isAr
+      ? 'أهلًا بك في مدار أسترا ✨ أنا هنا لأساعدك في أسئلتك ومهمتك الفضائية. أستطيع الاستفادة من بياناتك المسجلة، وسأوضح لك عندما لا أكون متأكدًا — فحتى أذكى أنظمة الذكاء الاصطناعي قد تخطئ.'
+      : 'Welcome to Astra’s orbit ✨ I’m here to help with your questions and spaceflight mission. I can use your logged wellness data, and I’ll be clear when I’m uncertain—AI can make mistakes, even when it sounds confident.',
+    timestamp: now(),
   };
 
   useEffect(() => {
-    scrollToBottom();
     try {
-      localStorage.setItem('astra_chat_history', JSON.stringify(messages));
-    } catch {}
+      if (messages.length) localStorage.setItem('astra_chat_history', JSON.stringify(messages));
+      else localStorage.removeItem('astra_chat_history');
+    } catch { /* Chat remains available for this session if storage is full or disabled. */ }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
 
-  // Voice synthesis (SpeechSynthesis)
-  const handleSpeak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-        return;
-      }
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text.replace(/[*#_]/g, ''));
-      utterance.lang = lang === 'ar' ? 'ar-SA' : 'en-US';
-      utterance.rate = 1.0;
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      setIsSpeaking(true);
-      window.speechSynthesis.speak(utterance);
-    }
-  };
+  const starterPrompts = isAr
+    ? ['كيف أتكيف مع النوم في انعدام الجاذبية؟', 'حلّل بيانات نومي المسجلة', 'اشرح لي كيف تدور محطة الفضاء حول الأرض']
+    : ['How can I adapt my sleep routine in microgravity?', 'Help me understand my logged sleep data', 'Explain how the space station orbits Earth'];
 
-  // Voice Dictation (SpeechRecognition)
-  const handleToggleMic = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert(lang === 'ar' ? 'خاصية التعرف على الصوت غير مدعومة في هذا المتصفح.' : 'Speech recognition is not supported in this browser.');
-      return;
-    }
-
-    if (isListening) {
-      setIsListening(false);
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = lang === 'ar' ? 'ar-EG' : 'en-US';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
-      };
-
-      recognition.start();
-    } catch (e) {
-      setIsListening(false);
-    }
-  };
-
-  // Copy message
-  const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  // Clear chat
-  const handleClearHistory = () => {
-    if (window.confirm(lang === 'ar' ? 'هل تود مسح سجل المحادثة والبدء من جديد؟' : 'Reset conversation history?')) {
-      const initial = getInitialMessages();
-      setMessages(initial);
-      localStorage.removeItem('astra_chat_history');
-    }
-  };
-
-  // Send message
-  const handleSendMessage = async (textToSend?: string) => {
-    const query = (textToSend || input).trim();
+  const handleSend = async (value = input) => {
+    const query = value.trim();
     if (!query || isLoading) return;
-
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    const userMessage: ChatMessage = { id: `user-${Date.now()}`, role: 'user', content: query, timestamp: now() };
+    const history = [...messages, userMessage];
+    setMessages(history);
     setInput('');
     setIsLoading(true);
-
     try {
-      // Build active astronaut telemetry context for Gemini
       const userContext = {
         missionName: 'ISS Expedition 72',
         missionDay: 48,
@@ -198,351 +116,234 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         loggedSymptoms: latestWellness?.symptoms || [],
         sleepDisturbances: latestSleep?.disturbances || [],
       };
-
-      // Format history starting from first user message for proper conversational pairing
-      const userTurnIdx = newMessages.findIndex((m) => m.role === 'user');
-      const validHistory = userTurnIdx >= 0 ? newMessages.slice(userTurnIdx) : newMessages;
-
-      const formattedHistory = validHistory.map((m) => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        content: m.content,
-      }));
-
-      const res = await fetch('/api/chat', {
+      const firstUserIndex = history.findIndex((message) => message.role === 'user');
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: formattedHistory,
+          messages: history.slice(firstUserIndex).map((message) => ({
+            role: message.role === 'user' ? 'user' : 'model',
+            content: message.content,
+          })),
           userContext,
           language: lang,
         }),
       });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data) {
-        throw new Error(data?.error || data?.details || `Server returned ${res.status}`);
-      }
-
-      const replyText = data.reply || (lang === 'ar' ? 'عذراً، لم أتمكن من معالجة الرد حالياً.' : 'Unable to generate response.');
-
-      const botMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data) throw new Error(data?.error || `Server returned ${response.status}`);
+      setMessages((current) => [...current, {
+        id: `astra-${Date.now()}`,
         role: 'assistant',
-        content: replyText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (err: any) {
-      console.warn('Network link unavailable — engaging Local Autonomous Edge Engine:', err);
-      // Generate rich local response from Local Context Engine (zero-network RAG)
-      const localReply = generateLocalEngineResponse(query, lang);
-      const fallbackMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
+        content: data.reply || (isAr ? 'لم يصلني رد واضح هذه المرة. جرّب سؤالك مرة أخرى.' : 'I could not get a clear response this time. Please try again.'),
+        timestamp: now(),
+      }]);
+    } catch (error) {
+      console.warn('Astra AI service unavailable; using local assistant:', error);
+      setMessages((current) => [...current, {
+        id: `astra-local-${Date.now()}`,
         role: 'assistant',
-        content: localReply,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages((prev) => [...prev, fallbackMessage]);
+        content: generateLocalEngineResponse(query, lang),
+        timestamp: now(),
+      }]);
     } finally {
       setIsLoading(false);
+      inputRef.current?.focus();
     }
   };
 
-  // Conversational space medicine and NASA emergency prompts
-  const starterPrompts = lang === 'ar' ? [
-    '🚨 بروتوكول طوارئ ناسا عند تسرب الأمونيا السامة في 60 ثانية',
-    '🫀 كيف أنفذ الإنعاش القلبي الرئوي في انعدام الوزن (Zero-G CPR)؟',
-    'حلل عجز النوم التراكمي في آخر 7 أيام وما تأثيره على تركيزي؟',
-    'أشعر بضغط واحتقان في الوجه، كيف يرتبط بانزياح السوائل نحو الرأس؟',
-    'لدي ألم خفيف أسفل الظهر، هل هذا بسبب تمدد العمود الفقري في الفضاء؟',
-    'ما هي جرعات الأدوية الفضائية المعتمدة لعلاج آلام الأسنان والرضح الجوي؟',
-  ] : [
-    '🚨 NASA Emergency Protocol for Toxic Ammonia Leak in < 60 seconds',
-    '🫀 How to execute Zero-G CPR with the Handstand Method',
-    'Analyze my 7-day sleep debt and its impact on mission vigilance.',
-    'I feel facial fullness and sinus pressure. Is this normal cephalad fluid shift?',
-    'I have mild lower back stiffness. How does zero-G spine elongation cause this?',
-    'What are the approved spaceflight drug dosages for barodontalgia and trauma?',
-  ];
+  const handleNewChat = () => {
+    if (!messages.length || window.confirm(isAr ? 'هل تريد بدء محادثة جديدة؟' : 'Start a new conversation?')) {
+      setMessages([]);
+      setInput('');
+    }
+  };
+
+  const handleMic = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      window.alert(isAr ? 'التعرّف على الصوت غير مدعوم في هذا المتصفح.' : 'Speech recognition is not supported in this browser.');
+      return;
+    }
+    if (isListening) return;
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = isAr ? 'ar-EG' : 'en-US';
+      recognition.continuous = false;
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = () => setIsListening(false);
+      recognition.onresult = (event: any) => setInput((value) => `${value}${value ? ' ' : ''}${event.results[0][0].transcript}`);
+      recognition.start();
+    } catch { setIsListening(false); }
+  };
+
+  const handleSpeak = (text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text.replace(/[*#_]/g, ''));
+    utterance.lang = isAr ? 'ar-SA' : 'en-US';
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleCopy = async (message: ChatMessage) => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopiedId(message.id);
+      window.setTimeout(() => setCopiedId(null), 1800);
+    } catch { /* Clipboard permissions may be unavailable. */ }
+  };
 
   return (
-    <div className="space-y-6 pb-12 max-w-5xl mx-auto">
-      {/* Header Banner */}
-      <div className="rounded-2xl p-5 bg-gradient-to-r from-[#101827] via-[#121D33] to-[#101827] border border-[#8B7CFF]/40 shadow-2xl relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="relative">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#8B7CFF] to-[#36D9FF] flex items-center justify-center shadow-[0_0_25px_rgba(139,124,255,0.4)]">
-                <Sparkles className="w-6 h-6 text-[#080B16]" />
-              </div>
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#20E0A0] border-2 border-[#101827] rounded-full" />
-            </div>
+    <section className="relative mx-auto flex min-h-[calc(100vh-9rem)] w-full max-w-7xl flex-col overflow-hidden rounded-[30px] border border-cyan-100/10 bg-[#050914] text-white shadow-[0_30px_100px_rgba(0,0,0,.5)]">
+      {/* Nebula, distant stars, and the orbital planet make this room feel like a window into space. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_5%,rgba(62,95,190,.2),transparent_38%),radial-gradient(ellipse_at_5%_55%,rgba(112,54,170,.15),transparent_38%),linear-gradient(180deg,#080d1a_0%,#050914_65%)]" />
+        {STAR_POSITIONS.map(([left, top], index) => (
+          <span key={index} className="absolute h-1 w-1 rounded-full bg-cyan-100/70 shadow-[0_0_10px_rgba(125,211,252,.8)]" style={{ left, top, opacity: index % 3 === 0 ? 0.9 : 0.45 }} />
+        ))}
+        <div className="absolute -right-20 -top-32 h-80 w-80 rounded-full border border-cyan-100/10 sm:right-[-2%] sm:top-[-24%] sm:h-[32rem] sm:w-[32rem]">
+          <div className="absolute inset-[8%] rounded-full border border-cyan-100/[0.07]" />
+          <div className="absolute inset-[17%] rounded-full border border-violet-200/[0.08]" />
+          <div className="absolute inset-[25%] rounded-full bg-[radial-gradient(circle_at_32%_28%,#4bb7d5_0%,#255f9d_24%,#172857_53%,#090f25_74%)] shadow-[0_0_90px_rgba(61,131,220,.2)]" />
+          <div className="absolute left-[13%] top-[46%] h-px w-[74%] rotate-[-24deg] bg-gradient-to-r from-transparent via-cyan-100/40 to-transparent" />
+        </div>
+      </div>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-display font-bold text-white tracking-wide">
-                  ASTRA AI · Spaceflight Cognitive Twin
-                </h1>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#36D9FF]/10 text-[#36D9FF] border border-[#36D9FF]/30">
-                  GEMINI 3.8 FLASH
-                </span>
+      <header className="relative z-10 border-b border-white/[0.08] px-5 py-5 sm:px-8 sm:py-7">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-100/20 bg-gradient-to-br from-cyan-300/20 via-indigo-400/20 to-violet-400/20 shadow-[0_0_35px_rgba(71,190,224,.18)]">
+              <Orbit className="h-7 w-7 text-cyan-200" strokeWidth={1.5} />
+              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-[#080d1a] bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.8)]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h1 className="font-display text-2xl font-bold tracking-wide text-white sm:text-3xl">ASTRA</h1>
+                <span className="rounded-full border border-cyan-200/20 bg-cyan-200/[0.07] px-2.5 py-1 text-[9px] font-semibold tracking-[.18em] text-cyan-100/80">MISSION AI</span>
               </div>
-              <p className="text-xs text-slate-300 font-sans mt-0.5">
-                {lang === 'ar' 
-                  ? 'محادثات ذكية متقدمة مع وعي شامل بسجلاتك، وبيئة الجاذبية الصغرى، وطب الفضاء.'
-                  : 'Advanced multi-turn dialogue grounded in your in-flight telemetry and NASA/ESA space medicine protocols.'}
+              <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-300/80 sm:text-sm">
+                {isAr ? 'رفيقتك الذكية — من مدار الأرض إلى أبعد النجوم' : 'Your intelligent companion, from Earth orbit to the farthest stars'}
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 self-end sm:self-center">
-            <button
-              onClick={handleClearHistory}
-              className="p-2 rounded-xl bg-[#080B16] border border-[#1E2D4A] hover:border-[#FF6577] text-slate-400 hover:text-[#FF6577] text-xs font-mono transition-colors flex items-center gap-1.5"
-              title={lang === 'ar' ? 'بدء محادثة جديدة' : 'Reset chat'}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{lang === 'ar' ? 'محادثة جديدة' : 'New Chat'}</span>
-            </button>
-          </div>
+          <button type="button" onClick={handleNewChat} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-xs text-slate-200 transition hover:border-cyan-200/30 hover:bg-cyan-200/[0.08]" title={isAr ? 'محادثة جديدة' : 'New conversation'}>
+            <Plus className="h-4 w-4 text-cyan-200" />
+            <span>{isAr ? 'محادثة جديدة' : 'New chat'}</span>
+          </button>
         </div>
 
-        {/* Live Context Telemetry Capsule */}
-        <div className="mt-4 pt-3 border-t border-[#1E2D4A]/60 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-400">
-          <div className="flex items-center gap-2">
-            <Radio className="w-3.5 h-3.5 text-[#36D9FF] animate-pulse" />
-            <span className="text-slate-300">ACTIVE TELEMETRY INGESTION:</span>
-            <span className="text-[#36D9FF] font-semibold">Sleep {formatDuration(avgSleep)} avg</span>
-            <span>·</span>
-            <span className="text-[#20E0A0]">Stress {latestWellness?.stressRating || 2}/5</span>
-            <span>·</span>
-            <span className="text-[#8B7CFF]">RR {latestResp?.respiratoryRate || 16}/min</span>
-          </div>
-          <div className="text-[11px] text-slate-500">
-            Encrypted End-to-End Mission Node
-          </div>
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/[0.07] pt-4 text-[10px] tracking-wide text-slate-400 sm:text-[11px]">
+          <span className="inline-flex items-center gap-2"><Radio className="h-3.5 w-3.5 text-emerald-300" /><span className="text-emerald-200">{isAr ? 'أسترا جاهزة للمحادثة' : 'ASTRA ready to chat'}</span></span>
+          <span className="hidden h-3 w-px bg-white/10 sm:block" />
+          <span>{isAr ? `متوسط النوم · ${formatDuration(avgSleep)}` : `Sleep average · ${formatDuration(avgSleep)}`}</span>
+          <span>{isAr ? `التوتر · ${latestWellness?.stressRating || 2}/5` : `Stress · ${latestWellness?.stressRating || 2}/5`}</span>
+          <span>{isAr ? `التنفس · ${latestResp?.respiratoryRate || 16}/د` : `Breathing · ${latestResp?.respiratoryRate || 16}/min`}</span>
         </div>
+      </header>
 
-        {/* Local NASA Knowledge Base Offline Engine Badge */}
-        <div className="mt-2.5 pt-2 border-t border-[#1E2D4A]/40 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-          <div className="flex items-center gap-1.5 text-[#20E0A0]">
-            <Cpu className="w-3.5 h-3.5" />
-            <span>{lang === 'ar' ? 'العقدة المحلية المستقلة نشطة · 18 بروتوكول طوارئ من ناسا مدمج بدون إنترنت (0ms Offline RAG)' : 'AUTONOMOUS EDGE NODE ACTIVE · 18 NASA PROTOCOLS LOADED (0ms OFFLINE RAG)'}</span>
-          </div>
-          <div className="text-slate-400">
-            {lang === 'ar' ? 'استرجاع فوري من ذاكرة الجهاز' : 'Zero-network local fallback ready'}
-          </div>
-        </div>
-      </div>
-
-      {/* Starter Prompts */}
-      <div>
-        <div className="text-xs font-mono uppercase text-slate-400 mb-2 flex items-center gap-1.5">
-          <Lightbulb className="w-3.5 h-3.5 text-[#FFBF69]" />
-          <span>{lang === 'ar' ? 'مواضيع ونقاشات مقترحة لرواد الفضاء:' : 'Suggested Spaceflight Inquiries:'}</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {starterPrompts.map((prompt, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSendMessage(prompt)}
-              className="p-3 rounded-xl bg-[#101827] border border-[#1E2D4A] hover:border-[#8B7CFF] text-left text-xs text-slate-300 hover:text-white transition-all flex items-center justify-between group shadow-sm hover:shadow-[0_0_15px_rgba(139,124,255,0.15)]"
-            >
-              <span className="line-clamp-2 leading-relaxed">{prompt}</span>
-              <ArrowRight className="w-3.5 h-3.5 text-[#8B7CFF] shrink-0 ml-2 group-hover:translate-x-1 transition-transform" />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ChatGPT-Style Chat Container */}
-      <div className="rounded-2xl bg-[#101827] border border-[#1E2D4A] shadow-2xl flex flex-col min-h-[500px] h-[650px] relative overflow-hidden">
-        {/* Messages Stream */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {messages.map((msg) => {
-            const isUser = msg.role === 'user';
-            return (
-              <div
-                key={msg.id}
-                className={`flex items-start gap-3 sm:gap-4 ${
-                  isUser ? 'flex-row-reverse' : 'flex-row'
-                }`}
-              >
-                {/* Avatar */}
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-md ${
-                    isUser
-                      ? 'bg-[#36D9FF]/20 border border-[#36D9FF]/40 text-[#36D9FF]'
-                      : 'bg-gradient-to-br from-[#8B7CFF] to-[#36D9FF] text-[#080B16] font-bold'
-                  }`}
-                >
-                  {isUser ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
-                </div>
-
-                {/* Message Bubble */}
-                <div
-                  className={`relative group rounded-2xl p-4 sm:p-5 max-w-[85%] sm:max-w-2xl text-xs sm:text-sm font-sans leading-relaxed shadow-lg ${
-                    isUser
-                      ? 'bg-[#192742] border border-[#36D9FF]/30 text-white rounded-tr-none'
-                      : 'bg-[#080B16] border border-[#1E2D4A] text-slate-200 rounded-tl-none'
-                  }`}
-                >
-                  {/* Sender Header */}
-                  <div className="flex items-center justify-between gap-3 mb-2 pb-1.5 border-b border-[#1E2D4A]/60 text-[10px] font-mono text-slate-400">
-                    <span className="font-semibold text-slate-300">
-                      {isUser ? 'Commander Chen' : 'ASTRA Cognitive Twin'}
-                    </span>
-                    <span className="tabular-nums">{msg.timestamp}</span>
-                  </div>
-
-                  {/* Message Content with Markdown Formatting */}
-                  <div className="whitespace-pre-wrap space-y-2">
-                    {msg.content.split('\n\n').map((paragraph, pIdx) => (
-                      <p key={pIdx} className="leading-relaxed">
-                        {paragraph.split('\n').map((line, lIdx) => {
-                          // Bullet items
-                          if (line.startsWith('• ') || line.startsWith('- ')) {
-                            return (
-                              <span key={lIdx} className="block pl-2 my-1 text-slate-200">
-                                <span className="text-[#36D9FF] mr-1.5">▪</span>
-                                {renderFormattedText(line.replace(/^[•-]\s*/, ''))}
-                              </span>
-                            );
-                          }
-                          // Numbered list
-                          if (/^\d+\.\s/.test(line)) {
-                            return (
-                              <span key={lIdx} className="block pl-2 my-1 text-slate-200">
-                                <span className="text-[#8B7CFF] font-mono font-semibold mr-1.5">
-                                  {line.match(/^\d+\./)?.[0]}
-                                </span>
-                                {renderFormattedText(line.replace(/^\d+\.\s*/, ''))}
-                              </span>
-                            );
-                          }
-                          return (
-                            <span key={lIdx} className="block">
-                              {renderFormattedText(line)}
-                            </span>
-                          );
-                        })}
-                      </p>
-                    ))}
-                  </div>
-
-                  {/* Actions Bar for Assistant Messages */}
-                  {!isUser && (
-                    <div className="mt-3 pt-2 border-t border-[#1E2D4A]/50 flex items-center gap-2 text-slate-400">
-                      <button
-                        onClick={() => handleCopy(msg.id, msg.content)}
-                        className="p-1.5 rounded-lg hover:bg-[#121D33] hover:text-white transition-colors"
-                        title="Copy Response"
-                      >
-                        {copiedId === msg.id ? (
-                          <Check className="w-3.5 h-3.5 text-[#20E0A0]" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleSpeak(msg.content)}
-                        className="p-1.5 rounded-lg hover:bg-[#121D33] hover:text-[#36D9FF] transition-colors"
-                        title={isSpeaking ? 'Stop Audio' : 'Listen with Audio'}
-                      >
-                        {isSpeaking ? (
-                          <VolumeX className="w-3.5 h-3.5 text-[#FF6577]" />
-                        ) : (
-                          <Volume2 className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {isLoading && (
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8B7CFF] to-[#36D9FF] text-[#080B16] flex items-center justify-center shrink-0">
-                <Bot className="w-5 h-5 animate-spin" />
-              </div>
-              <div className="p-4 rounded-2xl bg-[#080B16] border border-[#1E2D4A] rounded-tl-none">
-                <div className="flex items-center gap-2 text-xs font-mono text-[#8B7CFF]">
-                  <span className="w-2 h-2 rounded-full bg-[#8B7CFF] animate-ping" />
-                  <span>ASTRA is synthesizing flight data & spaceflight medicine protocols...</span>
-                </div>
-              </div>
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col">
+        {messages.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 text-center sm:px-8 sm:py-14">
+            <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-cyan-200/20 bg-cyan-200/[0.06] shadow-[0_0_60px_rgba(68,174,225,.12)]">
+              <Sparkles className="h-9 w-9 text-cyan-100" strokeWidth={1.4} />
+              <span className="absolute -right-1 top-2 text-lg">✦</span>
+              <span className="absolute -bottom-1 left-0 text-xs text-violet-200">✧</span>
             </div>
-          )}
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[.28em] text-cyan-100/60">{isAr ? 'مركز القيادة · قناة آمنة' : 'MISSION CONTROL · SECURE CHANNEL'}</p>
+            <h2 className="max-w-2xl font-display text-3xl font-semibold leading-tight text-white sm:text-4xl">
+              {isAr ? 'أهلاً بك، رائد الفضاء' : 'Welcome aboard, astronaut'}
+            </h2>
+            <p className="mt-3 max-w-lg text-sm leading-7 text-slate-300/80">
+              {isAr ? 'أنا أسترا. اسألني عن الفضاء أو مهمتك أو بياناتك المسجلة — ولنبدأ من هنا.' : 'I’m Astra. Ask me about space, your mission, or your logged wellness data. Where shall we begin?'}
+            </p>
+            <div className="mt-8 grid w-full max-w-3xl grid-cols-1 gap-3 text-start sm:grid-cols-3">
+              {starterPrompts.map((prompt, index) => (
+                <button key={prompt} onClick={() => void handleSend(prompt)} className="group rounded-2xl border border-white/[0.09] bg-white/[0.035] p-4 text-start transition hover:-translate-y-0.5 hover:border-cyan-200/30 hover:bg-cyan-200/[0.06]">
+                  <span className="mb-4 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-200/15 to-violet-300/15 text-cyan-100"><Sparkles className="h-4 w-4" /></span>
+                  <span className="block text-xs leading-5 text-slate-200">{prompt}</span>
+                  <ArrowUpRight className="mt-3 h-4 w-4 text-slate-500 transition group-hover:text-cyan-100" />
+                  <span className="sr-only">{index + 1}</span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-7 inline-flex items-center gap-2 text-[10px] text-slate-500">
+              <ShieldCheck className="h-3.5 w-3.5 text-cyan-200/70" />
+              <span>{isAr ? 'إجابات مفيدة وصريحة — وقد تحتاج المعلومات المهمة إلى التحقق' : 'Helpful, honest answers — verify important information'}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 space-y-6 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
+            {messages.map((message) => {
+              const isUser = message.role === 'user';
+              return (
+                <article key={message.id} className={`flex items-start gap-3 sm:gap-4 ${isUser ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${isUser ? 'border-cyan-200/20 bg-cyan-200/[0.08] text-cyan-100' : 'border-violet-200/20 bg-gradient-to-br from-cyan-200/15 to-violet-300/20 text-cyan-100'}`}>
+                    {isUser ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                  </div>
+                  <div className={`max-w-[88%] rounded-2xl border px-4 py-3.5 shadow-lg sm:max-w-[78%] sm:px-5 ${isUser ? 'rounded-tr-sm border-cyan-200/15 bg-cyan-200/[0.07]' : 'rounded-tl-sm border-white/[0.09] bg-[#0d1423]/90'}`}>
+                    <div className="mb-2 flex items-center justify-between gap-6 text-[10px] text-slate-400">
+                      <span className={isUser ? 'text-cyan-100/80' : 'font-semibold tracking-wide text-violet-100/90'}>{isUser ? (isAr ? 'أنت' : 'You') : 'ASTRA'}</span>
+                      <time>{message.timestamp}</time>
+                    </div>
+                    <p className="whitespace-pre-wrap text-[13px] leading-7 text-slate-100/90 sm:text-sm">{message.content}</p>
+                    {!isUser && (
+                      <div className="mt-3 flex items-center gap-1 border-t border-white/[0.07] pt-2">
+                        <button type="button" onClick={() => void handleCopy(message)} className="rounded-lg p-2 text-slate-500 transition hover:bg-white/[0.06] hover:text-white" title={isAr ? 'نسخ الرد' : 'Copy response'}>
+                          {copiedId === message.id ? <Check className="h-3.5 w-3.5 text-emerald-300" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                        <button type="button" onClick={() => handleSpeak(message.content)} className="rounded-lg p-2 text-slate-500 transition hover:bg-white/[0.06] hover:text-cyan-100" title={isSpeaking ? (isAr ? 'إيقاف الصوت' : 'Stop audio') : (isAr ? 'استمع للرد' : 'Listen to response')}>
+                          {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+            {isLoading && (
+              <div className="flex items-center gap-3 text-xs text-cyan-100/80">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-200/20 bg-violet-300/10"><Bot className="h-4 w-4 animate-pulse" /></div>
+                <span className="animate-pulse">{isAr ? 'أسترا تستكشف الإجابة...' : 'Astra is exploring an answer...'}</span>
+                <span className="h-1.5 w-1.5 animate-ping rounded-full bg-cyan-200" />
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
 
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Bar */}
-        <div className="p-3 sm:p-4 bg-[#080B16] border-t border-[#1E2D4A]">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-            className="flex items-center gap-2"
-          >
-            {/* Voice Dictation Button */}
-            <button
-              type="button"
-              onClick={handleToggleMic}
-              className={`p-3 rounded-xl border transition-all shrink-0 ${
-                isListening
-                  ? 'bg-rose-500/20 border-rose-500 text-rose-400 animate-pulse'
-                  : 'bg-[#121D33] border-[#1E2D4A] text-slate-400 hover:text-white'
-              }`}
-              title={isListening ? 'Listening...' : 'Dictate with Voice'}
-            >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+        <div className="border-t border-white/[0.08] bg-[#080d18]/90 px-4 pb-4 pt-4 backdrop-blur-xl sm:px-8 sm:pb-5">
+          <form onSubmit={(event) => { event.preventDefault(); void handleSend(); }} className="mx-auto flex max-w-4xl items-end gap-2 rounded-2xl border border-white/[0.12] bg-[#0e1524] p-2 shadow-[0_12px_40px_rgba(0,0,0,.3)] transition focus-within:border-cyan-200/35 focus-within:shadow-[0_0_0_3px_rgba(103,232,249,.06)]">
+            <button type="button" onClick={handleMic} className={`mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${isListening ? 'bg-rose-400/15 text-rose-300' : 'text-slate-400 hover:bg-white/[0.06] hover:text-cyan-100'}`} title={isListening ? (isAr ? 'جارٍ الاستماع' : 'Listening') : (isAr ? 'إملاء صوتي' : 'Voice input')}>
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </button>
-
-            {/* Input Box */}
-            <input
-              type="text"
+            <textarea
+              ref={inputRef}
+              rows={1}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={lang === 'ar' ? 'تحدث مع أسترا، اسأل عن أي شيء يتعلق بنومك أو تكيفك في الفضاء...' : 'Message ASTRA (e.g. analyze my fatigue trends or explain zero-G back pain)...'}
-              className="flex-1 bg-[#101827] border border-[#1E2D4A] focus:border-[#8B7CFF] rounded-xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 font-sans focus:outline-none focus:ring-1 focus:ring-[#8B7CFF]"
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void handleSend(); } }}
+              placeholder={isAr ? 'اكتب رسالتك إلى أسترا...' : 'Send a message to Astra...'}
+              className="max-h-32 min-h-10 flex-1 resize-y bg-transparent px-2 py-2.5 text-sm text-white outline-none placeholder:text-slate-500"
+              aria-label={isAr ? 'رسالتك إلى أسترا' : 'Your message to Astra'}
             />
-
-            {/* Send Button */}
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#8B7CFF] to-[#36D9FF] hover:opacity-95 disabled:opacity-40 text-[#080B16] font-bold text-xs font-mono uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 shadow-[0_0_15px_rgba(139,124,255,0.3)] cursor-pointer"
-            >
-              <span className="hidden sm:inline">{lang === 'ar' ? 'إرسال' : 'Send'}</span>
-              <Send className="w-4 h-4" />
+            <button type="submit" disabled={!input.trim() || isLoading} className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-200 to-sky-400 text-[#07111f] shadow-[0_4px_18px_rgba(56,189,248,.2)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-35" title={isAr ? 'إرسال' : 'Send message'}>
+              <Send className="h-4 w-4" />
             </button>
           </form>
-
-          <div className="mt-2 text-center text-[10px] font-mono text-slate-500">
-            ASTRA Cognitive Twin provides evidence-based spaceflight wellness insights. Does not replace the terrestrial Flight Surgeon.
+          <div className="mx-auto mt-3 flex max-w-4xl flex-wrap items-center justify-center gap-x-2 text-center text-[10px] leading-5 text-slate-500">
+            <ShieldCheck className="h-3 w-3 text-cyan-200/50" />
+            <span>{isAr ? 'أسترا قد تخطئ. لا تعتمد على الذكاء الاصطناعي وحده في القرارات الطبية أو الطارئة.' : 'Astra can make mistakes. Don’t rely on AI alone for medical or emergency decisions.'}</span>
+            <ChevronDown className="hidden h-3 w-3 opacity-40 sm:block" />
           </div>
         </div>
-      </div>
-    </div>
+      </main>
+    </section>
   );
 };
-
-// Helper to render bold markdown (**text**)
-function renderFormattedText(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <strong key={index} className="text-white font-semibold">
-          {part.slice(2, -2)}
-        </strong>
-      );
-    }
-    return part;
-  });
-}
