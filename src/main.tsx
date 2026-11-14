@@ -3,6 +3,7 @@ import App from './App.tsx';
 import { ReminderCenter } from './components/ReminderCenter';
 import { getSavedProfile } from './utils/storage';
 import './index.css';
+import './astra-performance.css';
 
 const lang = getSavedProfile().language || 'ar';
 
