@@ -456,18 +456,15 @@ export const INITIAL_HEALTH_EVENTS: HealthEventRecord[] = [
 ];
 
 /**
- * Storage helpers for Body Metrics
+ * Storage helpers for Body Metrics (starts empty until user logs or imports data)
  */
 export function getSavedBodyMetrics(): BodyMetricRecord[] {
   try {
     const raw = localStorage.getItem(BODY_METRICS_STORAGE_KEY);
-    if (!raw) {
-      saveBodyMetrics(INITIAL_BODY_METRICS);
-      return INITIAL_BODY_METRICS;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return INITIAL_BODY_METRICS;
+    return [];
   }
 }
 
@@ -480,18 +477,15 @@ export function saveBodyMetrics(records: BodyMetricRecord[]): void {
 }
 
 /**
- * Storage helpers for Health Events Timeline
+ * Storage helpers for Health Events Timeline (starts empty until user logs or imports data)
  */
 export function getSavedHealthEvents(): HealthEventRecord[] {
   try {
     const raw = localStorage.getItem(HEALTH_EVENTS_STORAGE_KEY);
-    if (!raw) {
-      saveHealthEvents(INITIAL_HEALTH_EVENTS);
-      return INITIAL_HEALTH_EVENTS;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return INITIAL_HEALTH_EVENTS;
+    return [];
   }
 }
 
@@ -501,4 +495,22 @@ export function saveHealthEvents(events: HealthEventRecord[]): void {
   } catch (err) {
     console.error('Failed to save health events:', err);
   }
+}
+
+export function loadDemoBodyAndEventRecords(): {
+  bodyMetrics: BodyMetricRecord[];
+  healthEvents: HealthEventRecord[];
+} {
+  const demoMetrics = INITIAL_BODY_METRICS.map((m) => ({ ...m, source: 'simulated' as DataSource }));
+  const demoEvents = INITIAL_HEALTH_EVENTS.map((e) => ({ ...e, source: 'simulated' as DataSource }));
+  saveBodyMetrics(demoMetrics);
+  saveHealthEvents(demoEvents);
+  return { bodyMetrics: demoMetrics, healthEvents: demoEvents };
+}
+
+export function clearHealthCoreStorage(): void {
+  try {
+    localStorage.removeItem(BODY_METRICS_STORAGE_KEY);
+    localStorage.removeItem(HEALTH_EVENTS_STORAGE_KEY);
+  } catch {}
 }

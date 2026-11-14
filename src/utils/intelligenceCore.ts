@@ -345,9 +345,9 @@ export function classifyPredictionTaxonomy(intent: IntelligenceIntent, query: st
       isTrained: true
     },
     languageModelReasoning: {
-      description: 'Frontier Aerospace Dialogue Reasoning Layer (Gemini 3.8 Flash via Server Proxy).',
-      descriptionAr: 'طبقة التفكير المعرفي الفضائي المتقدمة (Gemini 3.8 Flash عبر الخادم).',
-      modelName: 'gemini-3.8-flash',
+      description: 'Frontier Aerospace Dialogue Reasoning Layer (Gemini 4 Hydrogen via Server Proxy).',
+      descriptionAr: 'طبقة التفكير المعرفي الفضائي المتقدمة (Gemini 4 Hydrogen عبر الخادم).',
+      modelName: 'gemini-4-hydrogen',
       temperature: 0.2,
       promptTokens: 420
     }
@@ -364,16 +364,6 @@ export function curateRichMediaForDomain(intent: IntelligenceIntent, query: stri
   // Sleep & Circadian
   if (q.includes('sleep') || q.includes('نوم') || q.includes('circadian') || q.includes('راحة')) {
     return [
-      {
-        id: 'MEDIA-SLEEP-01',
-        type: 'image',
-        title: 'Astronaut Crew Berth Sleeping Restraint in Microgravity',
-        titleAr: 'كيس النوم وحزام التثبيت في مقصورة رائد الفضاء بانعدام الوزن',
-        url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80',
-        description: 'Padded sleeping bag secured to bulkhead to prevent free-floating collision during REM sleep.',
-        descriptionAr: 'كيس النوم المثبت على الجدار لمنع الطفو والارتطام العشوائي أثناء مرحلة النوم العميق وحركة العين السريعة.',
-        badge: 'NASA PHOTO'
-      },
       {
         id: 'MEDIA-SLEEP-02',
         type: 'link',
@@ -392,27 +382,6 @@ export function curateRichMediaForDomain(intent: IntelligenceIntent, query: stri
   if (q.includes('fluid') || q.includes('سوائل') || q.includes('heart') || q.includes('قلب') || q.includes('احتقان') || q.includes('face') || q.includes('وجه')) {
     return [
       {
-        id: 'MEDIA-FLUID-01',
-        type: 'image',
-        title: 'Cephalad Fluid Redistribution & Zero-G Neutral Body Posture',
-        titleAr: 'مخطط انزياح السوائل الرأسي ووضعية الجسم المحايدة في انعدام الوزن',
-        url: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1200&q=80',
-        description: 'Venous fluid shifts of ~1.8 L toward head and chest producing periorbital fullness and nasal congestion.',
-        descriptionAr: 'انزياح ما يقارب 1.8 لتر من السوائل نحو الصدر والرأس مسبباً انتفاخ الوجه واحتقان الجيوب الأنفية.',
-        badge: 'BIOPHYSICS DIAGRAM'
-      },
-      {
-        id: 'MEDIA-FLUID-02',
-        type: 'video',
-        title: 'Microgravity Fluid Dynamics & Capillary Action Demonstration',
-        titleAr: 'محاكاة حركة السوائل والتوتر السطحي في بيئة انعدام الجاذبية',
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80',
-        description: 'Fluid mechanics demonstration showing spherical surface tension behavior in orbit.',
-        descriptionAr: 'استعراض فيزيائي يوضح سلوك التوتر السطحي الكروي للماء في محطة الفضاء الدولية.',
-        badge: 'FLIGHT VIDEO'
-      },
-      {
         id: 'MEDIA-FLUID-03',
         type: 'link',
         title: 'NASA OSDR Study OSD-129: Cardiovascular Remodeling in Space',
@@ -429,16 +398,6 @@ export function curateRichMediaForDomain(intent: IntelligenceIntent, query: stri
   // Communications, Mars Transit & Speed of Light
   if (q.includes('mars') || q.includes('مريخ') || q.includes('comms') || q.includes('اتصال') || q.includes('delay') || q.includes('تأخير') || q.includes('dsn')) {
     return [
-      {
-        id: 'MEDIA-MARS-01',
-        type: 'image',
-        title: 'Mars Jezero Crater & Interplanetary Relay Geometry',
-        titleAr: 'فوهة جيزيرو على المريخ وهندسة الاتصال بين الكواكب',
-        url: 'https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?auto=format&fit=crop&w=1200&q=80',
-        description: 'Perseverance rover imaging site highlighting the 401 million km transmission path to Earth.',
-        descriptionAr: 'موقع هبوط مركبة بيرسيفيرنس موضحاً مسار الاتصال البالغ 401 مليون كيلومتر نحو الأرض.',
-        badge: 'MARS RECON'
-      },
       {
         id: 'MEDIA-DSN-02',
         type: 'link',
@@ -457,16 +416,6 @@ export function curateRichMediaForDomain(intent: IntelligenceIntent, query: stri
   if (q.includes('eva') || q.includes('suit') || q.includes('بدلة') || q.includes('سير') || q.includes('emergency') || q.includes('طوارئ') || q.includes('ammonia')) {
     return [
       {
-        id: 'MEDIA-EVA-01',
-        type: 'image',
-        title: 'Extravehicular Mobility Unit (EMU) Spacesuit Architecture',
-        titleAr: 'بنية بدلة السير الفضائي EMU وأنظمة دعم الحياة المحمولة',
-        url: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1200&q=80',
-        description: 'High-altitude spacewalk showing secondary oxygen pack (SOP) and safety tether configuration.',
-        descriptionAr: 'صورة سير فضائي توضح حزمة الأكسجين الثانوية SOP وحبل التثبيت الأمني.',
-        badge: 'EVA MISSION'
-      },
-      {
         id: 'MEDIA-EMERGENCY-02',
         type: 'link',
         title: 'NASA Emergency Medical Protocol Standards (Flight Rules Vol B)',
@@ -480,18 +429,8 @@ export function curateRichMediaForDomain(intent: IntelligenceIntent, query: stri
     ];
   }
 
-  // Default deep space observation
+  // Default official scientific repository reference
   return [
-    {
-      id: 'MEDIA-GEN-01',
-      type: 'image',
-      title: 'Earth Observation from Cupola Station Module',
-      titleAr: 'رصد كوكب الأرض من وحدة القبة المدارية (Cupola)',
-      url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80',
-      description: 'Expedition view demonstrating atmospheric orbital horizon and solar arrays.',
-      descriptionAr: 'مشهد مداري يوضح الأفق الجوي للأرض وألواح الطاقة الشمسية للمحطة.',
-      badge: 'STATION VIEW'
-    },
     {
       id: 'MEDIA-GEN-02',
       type: 'link',
@@ -647,7 +586,12 @@ export function executeIntelligenceTool(
 
       const avgSleepMinutes = userContext.sleepRecords.length > 0
         ? Math.round(userContext.sleepRecords.reduce((acc, s) => acc + s.durationMinutes, 0) / userContext.sleepRecords.length)
-        : 450;
+        : null;
+
+      const hrLabel = latestMetric?.heartRateBpm != null ? `${latestMetric.heartRateBpm} bpm` : 'Not logged';
+      const sleepLabel = avgSleepMinutes !== null ? `${(avgSleepMinutes / 60).toFixed(1)}h avg` : 'Not logged';
+      const hrLabelAr = latestMetric?.heartRateBpm != null ? `${latestMetric.heartRateBpm} ن/د` : 'غير مسجل';
+      const sleepLabelAr = avgSleepMinutes !== null ? `${(avgSleepMinutes / 60).toFixed(1)} س` : 'غير مسجل';
 
       const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
       const dispatchedRecord: DispatchedToolRecord = {
@@ -656,9 +600,16 @@ export function executeIntelligenceTool(
         toolLabelAr: 'مدقق ومستعلم المؤشرات الحيوية لنواة الصحة',
         dispatchedAt: Date.now(),
         durationMs,
-        inputParams: { target: 'current_session_vitals', recordsAudited: userContext.bodyMetrics.length + userContext.sleepRecords.length },
-        outputSummary: `Audited ${userContext.bodyMetrics.length} metrics, latest HR: ${latestMetric?.heartRateBpm ?? 64} bpm, Sleep: ${(avgSleepMinutes / 60).toFixed(1)}h avg.`,
-        outputSummaryAr: `تم فحص ${userContext.bodyMetrics.length} قياساً حيوياً، آخر نبض: ${latestMetric?.heartRateBpm ?? 64} ن/د، متوسط النوم: ${(avgSleepMinutes / 60).toFixed(1)} س.`,
+        inputParams: {
+          target: 'current_session_vitals',
+          recordsAudited:
+            userContext.bodyMetrics.length +
+            userContext.sleepRecords.length +
+            userContext.wellnessRecords.length +
+            userContext.respiratoryRecords.length
+        },
+        outputSummary: `Audited ${userContext.bodyMetrics.length} metrics, latest HR: ${hrLabel}, Sleep: ${sleepLabel}.`,
+        outputSummaryAr: `تم فحص ${userContext.bodyMetrics.length} قياساً حيوياً، النبض: ${hrLabelAr}، النوم: ${sleepLabelAr}.`,
         status: 'SUCCESS',
       };
 
@@ -669,7 +620,7 @@ export function executeIntelligenceTool(
           titleAr: 'سجل المؤشرات الحيوية لنواة صحة رائد الفضاء ASTRA',
           portal: 'astra.node.local',
           provenance: latestMetric?.source || 'measured',
-          accessionOrId: latestMetric?.id || 'LOCAL-VITALS-01',
+          accessionOrId: latestMetric?.id || 'LOCAL-VITALS-STORE',
           confidenceScore: 0.98,
         },
         {
@@ -1068,68 +1019,115 @@ export function processIntelligenceQuery(
   let safetyClassification: 'NON_DIAGNOSTIC' | 'EMERGENCY_REDIRECT' | 'GENERAL_WELLNESS' | 'TACTICAL_COMMS' = 'NON_DIAGNOSTIC';
 
   // 1. Tool Routing Dispatch Logic
+  const callsign = userContext.profileCallsign || (isAr ? 'رائد الفضاء' : 'Astronaut');
+  const flightDayText = userContext.missionDay ? `Flight Day ${userContext.missionDay}` : 'Active Session';
+  const flightDayTextAr = userContext.missionDay ? `اليوم ${userContext.missionDay} من المهمة` : 'الجلسة الحالية';
+
   if (intent === 'health_analysis') {
     reasoningSteps.push('1. Identified query addressing physiological symptoms and health metrics.');
-    reasoningSteps.push('2. Dispatched query_health_vitals tool to audit current biometric envelopes and provenance.');
+    reasoningSteps.push('2. Dispatched query_health_vitals tool to audit logged biometric records and provenance.');
     reasoningStepsAr.push('1. تم تمييز استفسار يتعلق بالمؤشرات الفسيولوجية وأعراض التكيف في المدار.');
-    reasoningStepsAr.push('2. تم توجيه الطلب إلى أداة query_health_vitals لفحص النطاقات الحيوية ومصدر البيانات.');
+    reasoningStepsAr.push('2. تم توجيه الطلب إلى أداة query_health_vitals لفحص السجلات الحيوية المسجلة ومصدرها.');
 
     const res = executeIntelligenceTool('query_health_vitals', {}, userContext);
     dispatchedTools.push(res.dispatchedRecord);
     sourcesCited.push(...res.sources);
 
     const vitals = res.data.latestMetric as BodyMetricRecord | null;
-    const hr = vitals?.heartRateBpm ?? 64;
-    const sys = vitals?.bloodPressureSys ?? 118;
-    const dia = vitals?.bloodPressureDia ?? 76;
-    const spo2 = vitals?.spO2Percent ?? 98;
-    const provenance = vitals?.source || 'measured';
+    const latestSleep = res.data.latestSleep as SleepRecord | null;
+    const latestWellness = res.data.latestWellness as WellnessRecord | null;
+    const latestResp = res.data.latestResp as RespiratoryRecord | null;
+    const avgSleepMin = res.data.avgSleepMinutes as number | null;
 
-    reasoningSteps.push(`3. Verified resting HR ${hr} bpm, BP ${sys}/${dia} mmHg, SpO2 ${spo2}%. Provenance: ${provenance}.`);
-    reasoningStepsAr.push(`3. التحقق من النبض ${hr} ن/د، والضغط ${sys}/${dia} ملم زئبق، والأكسجين ${spo2}%. المصدر: ${provenance}.`);
+    const hasVitals = Boolean(vitals && vitals.heartRateBpm != null);
+
+    if (hasVitals && vitals) {
+      const hr = vitals.heartRateBpm;
+      const sys = vitals.bloodPressureSys ?? '—';
+      const dia = vitals.bloodPressureDia ?? '—';
+      const spo2 = vitals.spO2Percent ?? '—';
+      const provenance = vitals.source || 'measured';
+      reasoningSteps.push(`3. Verified logged resting HR ${hr} bpm, BP ${sys}/${dia} mmHg, SpO2 ${spo2}%. Provenance: ${provenance}.`);
+      reasoningStepsAr.push(`3. التحقق من القراءات المسجلة: النبض ${hr} ن/د، الضغط ${sys}/${dia} ملم زئبق، SpO2 ${spo2}%. المصدر: ${provenance}.`);
+    } else {
+      reasoningSteps.push('3. Audited local store: 0 body biometric records logged by user; zero numbers fabricated.');
+      reasoningStepsAr.push('3. فحص الذاكرة المحلية: لا توجد قياسات حيوية مسجلة بعد؛ لن يتم اختراع أي أرقام غير مسجلة.');
+    }
 
     unknownsAndBoundaries.push('ASTRA cannot confirm clinical cardiovascular pathology without an ultrasound echocardiogram and Flight Surgeon review.');
-    unknownsAndBoundaries.push('Current analysis represents resting baseline; exertion response under ARED resistance loading requires active telemetry capture.');
-    unknownsAndBoundariesAr.push('لا تستطيع ASTRA تأكيد أي تشخيص سريري للقلب دون إجراء فحص تخطيط الصدى الإيكوغرافي ومراجعة طبيب الرحلة.');
-    unknownsAndBoundariesAr.push('التحليل يعبر عن وضع الراحة الحالي؛ الاستجابة القلبية أثناء تمرين المقاومة تتطلب رصداً فورياً أثناء التمرين.');
+    unknownsAndBoundaries.push(
+      hasVitals
+        ? 'Current analysis represents logged baseline; exertion response requires active telemetry capture.'
+        : 'No user body metrics have been logged yet; quantitative vital trends cannot be computed until records are entered.'
+    );
+    unknownsAndBoundariesAr.push('لا تستطيع ASTRA تأكيد أي تشخيص سريري دون إجراء الفحوصات الطبية اللازمة ومراجعة طبيب الرحلة (Flight Surgeon).');
+    unknownsAndBoundariesAr.push(
+      hasVitals
+        ? 'التحليل يعبر عن القراءات المسجلة حالياً؛ الاستجابة أثناء الجهد تتطلب رصداً مخصصاً.'
+        : 'لم يقم المستخدم بتسجيل قياسات جسمية بعد؛ لا يمكن حساب اتجاهات رقمية قبل إدخال أول قياس.'
+    );
 
     clarificationPrompt = isAr
-      ? 'هل حدثت هذه الأعراض أثناء الراحة التامة في كيس النوم أم فور انتهاء تمرين المقاومة على جهاز ARED؟'
-      : 'Did you experience these symptoms while resting in your berth, or immediately following your ARED resistance protocol?';
+      ? 'هل ترغب في تسجيل قياساتك الحيوية أو مدة نومك الآن في نواة الصحة لتحليلها بناءً على أرقامك الفعلية؟'
+      : 'Would you like to log your current vitals or sleep duration in Health Core so I can analyze your actual recorded telemetry?';
 
-    replyText = `### 🛰️ ASTRA Integrated Physiological Synthesis (Flight Day ${userContext.missionDay || 48})
+    const telemetryLinesEn: string[] = [];
+    const telemetryLinesAr: string[] = [];
 
-Based on active bio-telemetry verified by the **Health Core Envelope Validator**:
-• **Resting Heart Rate**: **${hr} bpm** (Nominal envelope: 45–100 bpm · Source: *${provenance}*).
-• **Blood Pressure**: **${sys}/${dia} mmHg** (Autonomic tone stable).
-• **Arterial Oxygenation**: **${spo2}% SpO2** (Within standard habitat thresholds).
+    if (hasVitals && vitals) {
+      telemetryLinesEn.push(`• **Resting Heart Rate**: **${vitals.heartRateBpm} bpm** (Nominal envelope: 50–100 bpm · Source: *${vitals.source}*).`);
+      telemetryLinesEn.push(`• **Blood Pressure**: **${vitals.bloodPressureSys ?? '—'}/${vitals.bloodPressureDia ?? '—'} mmHg**`);
+      telemetryLinesEn.push(`• **Arterial Oxygenation**: **${vitals.spO2Percent ?? '—'}% SpO2**`);
+      telemetryLinesAr.push(`• **معدل النبض المسجل**: **${vitals.heartRateBpm} نبضة/دقيقة** (النطاق الاسمي 50–100 ن/د · المصدر: *${vitals.source}*).`);
+      telemetryLinesAr.push(`• **ضغط الدم الشرياني**: **${vitals.bloodPressureSys ?? '—'}/${vitals.bloodPressureDia ?? '—'} ملم زئبق**`);
+      telemetryLinesAr.push(`• **تشبع الأكسجين**: **${vitals.spO2Percent ?? '—'}% SpO2**`);
+    } else {
+      telemetryLinesEn.push('• **Body Vitals (HR / BP / SpO2)**: *Not logged yet (0 records entered in Health Core).*');
+      telemetryLinesAr.push('• **المؤشرات الحيوية (النبض / الضغط / SpO2)**: *لم تُسجل بعد (0 قياسات مدخلة في نواة الصحة).*');
+    }
+
+    if (latestSleep && avgSleepMin !== null) {
+      telemetryLinesEn.push(`• **Sleep Baseline**: **${(avgSleepMin / 60).toFixed(1)}h avg** (Latest: ${(latestSleep.durationMinutes / 60).toFixed(1)}h · *${latestSleep.source}*).`);
+      telemetryLinesAr.push(`• **سجلات النوم**: **متوسط ${(avgSleepMin / 60).toFixed(1)} ساعة** (آخر سجل: ${(latestSleep.durationMinutes / 60).toFixed(1)} س · *${latestSleep.source}*).`);
+    }
+    if (latestWellness) {
+      telemetryLinesEn.push(`• **Wellness Check-in**: Mood **${latestWellness.moodRating}/5**, Stress **${latestWellness.stressRating}/5**, Energy **${latestWellness.energyRating}/5**.`);
+      telemetryLinesAr.push(`• **الرفاهية النفسية**: المزاج **${latestWellness.moodRating}/5**، التوتر **${latestWellness.stressRating}/5**، الطاقة **${latestWellness.energyRating}/5**.`);
+    }
+    if (latestResp) {
+      telemetryLinesEn.push(`• **Respiration**: **${latestResp.respiratoryRate} breaths/min** (*${latestResp.source}*).`);
+      telemetryLinesAr.push(`• **معدل التنفس**: **${latestResp.respiratoryRate} نفس/دقيقة** (*${latestResp.source}*).`);
+    }
+
+    replyText = `### 🛰️ ASTRA Physiological & Space Medicine Guidance (${flightDayText})
+
+**Logged User Telemetry Audited by Health Core:**
+${telemetryLinesEn.join('\n')}
 
 #### 🔬 Microgravity Biomechanics & Rationale:
-In zero gravity, the cephalad redistribution of ~1.8 L of fluid produces facial puffiness, nasal mucosal engorgement, and transient jugular venous distension. This is standard orbital adaptation and does not indicate cardiac distress.
+In zero gravity, the cephalad redistribution of ~1.8 L of fluid produces facial puffiness, nasal mucosal engorgement, and transient jugular venous distension, while unloaded intervertebral discs lengthen the spine and can cause mild lumbar stiffness.
 
 #### 🛡️ Protocol-Aligned Countermeasures (Non-Diagnostic):
-1. **Hydration Entrainment**: Maintain fluid intake at 2,400 mL/day with balanced electrolyte rehydration salts.
+1. **Hydration Entrainment**: Maintain fluid intake around 2,400 mL/day with balanced electrolytes.
 2. **Postural Realignment**: Practice 2 minutes of the zero-gravity fetal tuck to decompress paraspinal tension.
-3. **Resting Cadence**: Initiate a 3-minute 4-4-4 box breathing sequence in the observation cupola.
+3. **Resting Cadence**: Initiate a 3-minute 4-4-4 box breathing sequence and log your reading in Health Core.
 
-*Safety Boundary: If acute resting shortness of breath, substernal tightness, or visual scotoma develops, immediately alert the Crew Medical Officer (CMO) and request an encrypted Private Medical Conference (PMC).*`;
+*Safety Boundary: If acute resting shortness of breath, substernal chest tightness, or visual changes develop, immediately alert the Crew Medical Officer (CMO) / Flight Surgeon via an encrypted Private Medical Conference (PMC).*`;
 
-    replyTextAr = `### 🛰️ التحليل الفسيولوجي الموحد من ASTRA (اليوم ${userContext.missionDay || 48} من المهمة)
+    replyTextAr = `### 🛰️ التحليل والإرشاد الفسيولوجي من ASTRA (${flightDayTextAr})
 
-بناءً على القياسات الحيوية المدققة بواسطة **نواة الصحة وفاحص النطاقات الطبية**:
-• **معدل النبض أثناء الراحة**: **${hr} نبضة/دقيقة** (ضمن النطاق الاسمي 45–100 ن/د · المصدر: *${provenance}*).
-• **ضغط الدم الشرياني**: **${sys}/${dia} ملم زئبق** (استقرار الجهاز العصبي الذاتي).
-• **تشبع الأكسجين**: **${spo2}% SpO2** (ضمن الحدود الآمنة للغلاف الجوي في الكابينة).
+**ملخص القياسات المسجلة من المستخدم (مدقق عبر نواة الصحة):**
+${telemetryLinesAr.join('\n')}
 
 #### 🔬 الآلية الفيزيائية الحيوية والتفسير العلمي:
-في بيئة الجاذبية الصغرى، يؤدي انزياح 1.8 لتر من السوائل نحو الرأس إلى احتقان الغشاء المخاطي للأنف وانتفاخ الأنسجة حول العين. هذا تكيف مداري طبيعي وليس علامة على قصور قلبي.
+في بيئة الجاذبية الصغرى، يؤدي انزياح قرابة 1.8 لتر من السوائل نحو الرأس إلى احتقان الأنف وانتفاخ طفيف حول العينين، كما يتمدد العمود الفقري لغياب ضغط الجاذبية مما قد يسبب إجهاداً خفيفاً أسفل الظهر.
 
 #### 🛡️ الإجراءات الوقائية غير التشخيصية المعتمدة:
-1. **ترطيب الجسم**: الحفاظ على شرب 2400 مل/يوم من الماء مع أملاح الكهارل المتوازنة لمنع الجفاف التعويضي.
-2. **تخفيف شد الظهر**: تطبيق وضعية الجنين المدارية (Fetal Tuck) لمدة دقيقتين لتخفيف شد عضلات العمود الفقري.
-3. **ضبط التنفس**: تفعيل جلسة تنفس الصندوق (4-4-4) في قبة المراقبة لتحفيز الجهاز العصبي الباراسمبثاوي.
+1. **ترطيب الجسم**: الحفاظ على شرب ~2400 مل/يوم من الماء مع أملاح الكهارل المتوازنة.
+2. **تخفيف شد الظهر**: تطبيق وضعية الجنين المدارية (Fetal Tuck) لمدة دقيقتين لتخفيف الشد العضلي.
+3. **ضبط التنفس والتسجيل**: ممارسة تنفس الصندوق (4-4-4) وتدوين قراءاتك الفعلية في تبويب نواة الصحة.
 
-*حدود الأمان: في حال حدوث ضيق تنفس حاد مفاجئ أثناء الراحة أو ألم في الصدر أو تشوش بصري، يجب إبلاغ مسؤول الطاقم الطبي (CMO) فوراً لعقد مؤتمر طبي خاص ومشفّر (PMC) مع هيوستن.*`;
+*حدود الأمان: في حال حدوث ضيق تنفس مفاجئ أثناء الراحة أو ألم في الصدر أو تشوش بصري، يجب إبلاغ مسؤول الطاقم الطبي (CMO) وطبيب الرحلة فوراً لعقد مؤتمر طبي خاص ومشفّر (PMC).*`;
 
   } else if (intent === 'predictive_schedule') {
     reasoningSteps.push('1. Recognized transmission optimization and speed-of-light delay query.');
@@ -1280,9 +1278,9 @@ ${idx + 1}. **${r.titleAr}**
   } else {
     // General or System Diagnostics
     reasoningSteps.push('1. Handled general spacecraft wellness query.');
-    reasoningSteps.push('2. Dispatched audit_system_diagnostics tool to verify node integrity.');
+    reasoningSteps.push('2. Dispatched audit_system_diagnostics tool to verify node integrity and logged record counts.');
     reasoningStepsAr.push('1. معالجة استفسار عام حول صحة رائد الفضاء وعمليات المهمة.');
-    reasoningStepsAr.push('2. تم توجيه الطلب لأداة audit_system_diagnostics للتحقق من سلامة العقدة.');
+    reasoningStepsAr.push('2. تم توجيه الطلب لأداة audit_system_diagnostics للتحقق من سلامة العقدة وعدد السجلات الفعلية.');
 
     const res = executeIntelligenceTool('audit_system_diagnostics', {}, userContext);
     dispatchedTools.push(res.dispatchedRecord);
@@ -1291,25 +1289,31 @@ ${idx + 1}. **${r.titleAr}**
     unknownsAndBoundaries.push('For general dialogue, recommendations are operational wellness heuristics and do not modify flight plans without Commander authorization.');
     unknownsAndBoundariesAr.push('في الحوارات العامة، التوصيات استرشادية لتعزيز الراحة ولا تعدل مسار المهمة دون موافقة قائد الرحلة.');
 
-    replyText = `### 🛰️ ASTRA Intelligence Core Status: NOMINAL
+    const totalLoggedCount =
+      userContext.sleepRecords.length +
+      userContext.wellnessRecords.length +
+      userContext.respiratoryRecords.length +
+      userContext.bodyMetrics.length;
 
-Commander Chen, all subsystems are operational and synchronized:
-• **Health Core Engine**: Nominal physiological envelopes, zero undetected telemetry gaps.
-• **Predictive Scheduler**: Dynamic multi-factor utility function $U_i$ active.
-• **Live Mission Link**: DTN offline buffer primed, server deduplication enabled.
-• **Autonomous Edge Node**: Full offline capability; 100% operational without external internet access.
+    replyText = `### 🛰️ ASTRA Intelligence Core — Active Session (${callsign})
 
-How would you like to proceed with your mission checklist?`;
+All ASTRA subsystems are ready and synchronized (${totalLoggedCount} user health records currently stored):
+• **Health Core**: ${userContext.bodyMetrics.length} body metrics · ${userContext.sleepRecords.length} sleep logs · ${userContext.wellnessRecords.length} wellness check-ins · ${userContext.respiratoryRecords.length} respiratory logs.
+• **ASTRA PREDICT**: Relativistic scheduling model ($U_i$) active.
+• **Live Mission Link**: DTN offline buffer primed.
+• **Autonomous Edge Node**: 100% operational offline without external internet.
 
-    replyTextAr = `### 🛰️ حالة نواة ذكاء ASTRA المركزية: اسمية (NOMINAL)
+How can I assist you today?`;
 
-القائدة سارة تشين، جميع الأنظمة والوحدات متكاملة وتعمل بتوافق كامل:
-• **نواة الصحة Health Core**: النطاقات الفسيولوجية مستقرة، ولا توجد فجوات غير مرصودة.
-• **محرك التنبؤ والجدولة PREDICT**: دالة الجدوى $U_i$ وحساب زمن وصول سرعة الضوء نشطة.
-• **محطة الاتصال Live Mission Link**: طابور الحزم الميداني جاهز مع نظام منع التكرار.
-• **عقدة الحوسبة الذاتية Edge Node**: جاهزية 100% للعمل بدون إنترنت أو اتصال خارجي.
+    replyTextAr = `### 🛰️ نواة ذكاء ASTRA المركزية — جاهزة للعمل (${callsign})
 
-كيف تفضلين متابعة جدول أعمال المهمة اليوم؟`;
+جميع أنظمة ASTRA متكاملة ونشطة (عدد السجلات المدخلة من قِبلك حالياً: ${totalLoggedCount} سجل):
+• **نواة الصحة (Health Core)**: ${userContext.bodyMetrics.length} قياس حيوي · ${userContext.sleepRecords.length} سجل نوم · ${userContext.wellnessRecords.length} تقييم نفسي · ${userContext.respiratoryRecords.length} سجل تنفس.
+• **محرك التنبؤ (ASTRA PREDICT)**: نموذج الجدولة وحساب تأخير الضوء نشط.
+• **محطة الاتصال (Live Mission Link)**: طابور النقل DTN جاهز.
+• **العقدة الذاتية (Edge Node)**: جاهزة للعمل 100% حتى عند انقطاع الاتصال.
+
+كيف يمكنني مساعدتك اليوم؟`;
   }
 
   // Check Prompt Injection Guardrails
@@ -1394,7 +1398,8 @@ How would you like to proceed with your mission checklist?`;
  */
 export function getSystemModulesStatus(
   healthMetricsCount: number,
-  offlineQueueCount: number
+  offlineQueueCount: number,
+  missionMessagesCount = 0
 ): ModuleOperationalStatus[] {
   const now = Date.now();
 
@@ -1405,7 +1410,7 @@ export function getSystemModulesStatus(
       nameAr: 'نواة الصحة الفضائية ASTRA',
       status: 'NOMINAL',
       lastSyncTimestamp: now - 12000,
-      recordCount: healthMetricsCount || 48,
+      recordCount: healthMetricsCount,
       latencyMs: 1.2,
       provenanceTypes: ['measured', 'user_logged', 'imported'],
     },
@@ -1425,7 +1430,7 @@ export function getSystemModulesStatus(
       nameAr: 'محطة الاتصال الفضائي المباشر',
       status: offlineQueueCount > 0 ? 'OFFLINE_BUFFERED' : 'ONLINE',
       lastSyncTimestamp: now - 30000,
-      recordCount: 24,
+      recordCount: missionMessagesCount || offlineQueueCount,
       latencyMs: 2.1,
       provenanceTypes: ['measured', 'user_logged'],
     },

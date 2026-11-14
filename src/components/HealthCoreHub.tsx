@@ -418,7 +418,26 @@ export const HealthCoreHub: React.FC<HealthCoreHubProps> = ({
           </div>
 
           <div className="space-y-3">
-            {healthEvents.map((evt) => (
+            {healthEvents.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-[#07111F]/80 border border-dashed border-[#162E48] text-center space-y-3">
+                <Calendar className="w-7 h-7 text-[#42C8F5]/60 mx-auto" />
+                <div className="text-sm font-bold text-white">
+                  {isAr ? 'لا توجد أحداث أو قياسات مسجلة بعد' : 'No Health Events or Vitals Logged Yet'}
+                </div>
+                <p className="text-xs text-[#A9B8C8] max-w-md mx-auto">
+                  {isAr
+                    ? 'السجلات تبدأ فارغة تماماً. يمكنك تسجيل قياسك الحيوي الأول أو استيراد ملف CSV/JSON أو استيراد عينات ناسا.'
+                    : 'Logs start clean. Enter your first vital signs, import a CSV/JSON file, or ingest NASA sample datasets.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('vitals_entry')}
+                  className="px-4 py-2 rounded-xl bg-[#42C8F5] text-[#07111F] font-bold text-xs font-mono cursor-pointer hover:brightness-110 transition-all"
+                >
+                  {isAr ? 'تسجيل أول قياس حيوي' : 'Log First Vitals'}
+                </button>
+              </div>
+            ) : healthEvents.map((evt) => (
               <div
                 key={evt.id}
                 className="p-4 rounded-2xl bg-[#07111F]/80 border border-[#162E48] hover:border-[#42C8F5]/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
@@ -455,7 +474,7 @@ export const HealthCoreHub: React.FC<HealthCoreHubProps> = ({
 
                 <div className="text-left sm:text-right shrink-0">
                   <span className="text-[10px] font-mono text-[#42C8F5]">
-                    Expedition 72 Log
+                    {evt.date}
                   </span>
                 </div>
               </div>

@@ -62,13 +62,13 @@ export function formatDisplayDate(dateStr: string, lang: 'en' | 'ar' = 'en'): st
 }
 
 export const DEFAULT_PROFILE: AstronautProfile = {
-  callsign: 'Sarah Chen',
+  callsign: 'Astronaut',
   rank: 'Commander',
   missionName: 'ISS Expedition 72',
-  missionDay: 48,
+  missionDay: 1,
   targetSleepMinutes: 480, // 8.0 hours standard mission guideline
   timezone: 'UTC (Spacecraft GMT)',
-  language: 'ar', // Default Arabic per user preference
+  language: 'ar',
 };
 
 export const INITIAL_TASKS: WellnessTask[] = [
@@ -234,18 +234,14 @@ function generateInitialRespiratoryRecords(): RespiratoryRecord[] {
   return records;
 }
 
-// Local Storage helpers
+// Local Storage helpers — default to empty [] so zero unlogged records are shown
 export function getSavedSleepRecords(): SleepRecord[] {
   try {
     const raw = localStorage.getItem(SLEEP_STORAGE_KEY);
-    if (!raw) {
-      const initial = generateInitialSleepRecords();
-      saveSleepRecords(initial);
-      return initial;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return generateInitialSleepRecords();
+    return [];
   }
 }
 
@@ -260,14 +256,10 @@ export function saveSleepRecords(records: SleepRecord[]): void {
 export function getSavedWellnessRecords(): WellnessRecord[] {
   try {
     const raw = localStorage.getItem(WELLNESS_STORAGE_KEY);
-    if (!raw) {
-      const initial = generateInitialWellnessRecords();
-      saveWellnessRecords(initial);
-      return initial;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return generateInitialWellnessRecords();
+    return [];
   }
 }
 
@@ -282,14 +274,10 @@ export function saveWellnessRecords(records: WellnessRecord[]): void {
 export function getSavedRespiratoryRecords(): RespiratoryRecord[] {
   try {
     const raw = localStorage.getItem(RESPIRATORY_STORAGE_KEY);
-    if (!raw) {
-      const initial = generateInitialRespiratoryRecords();
-      saveRespiratoryRecords(initial);
-      return initial;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return generateInitialRespiratoryRecords();
+    return [];
   }
 }
 
@@ -299,6 +287,20 @@ export function saveRespiratoryRecords(records: RespiratoryRecord[]): void {
   } catch (err) {
     console.warn('Failed to save respiratory records to local storage', err);
   }
+}
+
+export function loadDemoMissionRecords(): {
+  sleep: SleepRecord[];
+  wellness: WellnessRecord[];
+  respiratory: RespiratoryRecord[];
+} {
+  const sleep = generateInitialSleepRecords().map((r) => ({ ...r, source: 'simulated' as const }));
+  const wellness = generateInitialWellnessRecords().map((r) => ({ ...r, source: 'simulated' as const }));
+  const respiratory = generateInitialRespiratoryRecords();
+  saveSleepRecords(sleep);
+  saveWellnessRecords(wellness);
+  saveRespiratoryRecords(respiratory);
+  return { sleep, wellness, respiratory };
 }
 
 export function getSavedTasks(): WellnessTask[] {

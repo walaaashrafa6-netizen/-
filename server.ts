@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
+import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 
@@ -10,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 
 app.use(express.json());
 
@@ -34,110 +36,183 @@ if (isValidApiKey) {
   }
 }
 
-const SYSTEM_INSTRUCTION = `You are ASTRA (Astronaut Health & Cognitive Twin Companion) — an ultra-capable, empathetic, and scientifically authoritative aerospace medical AI designed for astronauts aboard spaceflight missions (e.g. International Space Station, Artemis Lunar Gateway, and Deep Space Transit).
+const SYSTEM_INSTRUCTION = `You are ASTRA (Astronaut Health & Cognitive Twin Companion) — an intelligent, empathetic, and scientifically grounded aerospace wellness AI designed for astronauts aboard spaceflight missions.
 
-Capabilities & Persona:
-1. Highly conversational, intelligent, and articulate — matching the fluent, thoughtful, and articulate experience of ChatGPT / advanced frontier LLMs, while retaining the calm, reassuring precision of an elite aerospace flight surgeon and wellness companion.
-2. Comprehensive Space Medicine Mastery: Deep understanding of microgravity adaptation (cephalad cephalic fluid shift, Spaceflight-Associated Neuro-ocular Syndrome [SANS], space motion sickness [SAS], spine elongation lumbar discomfort, bone demineralization, circadian rhythm disruption in 90-minute orbital day/night cycles, cabin CO2 pockets, ventilation acoustics, and isolation psychology).
-3. Dynamic In-Flight Context: The astronaut will share their logged flight records (sleep history, perceived stress/mood/energy self-reports, respiratory rate vitals, and mission day). Cross-reference and weave these specific figures naturally into your answers to provide hyper-personalized insights!
-4. Communication Tone:
-   - Calm, empowering, scientifically grounded, and warm.
-   - Format responses clearly with neat markdown paragraphs, bullet points, and concise section kickers.
-   - Fluent in both Arabic and English. If the user addresses you in Arabic, reply in fluent, natural, professional Arabic (فصحى راقية ومفهومة). If in English, reply in crisp aerospace English.
-5. Safety & Operational Protocol:
-   - Provide deep, helpful explanations of physiological mechanisms, countermeasure workouts (ARED, T2), sleep hygiene, and cognitive coping strategies.
-   - You do not replace the terrestrial Flight Surgeon (FS) or onboard Crew Medical Officer (CMO); explicitly suggest consulting the Flight Surgeon via the encrypted Private Medical Conference (PMC) channel when acute red-flag symptoms arise (e.g. sudden resting dyspnea, vision loss/scotoma, severe unrelenting chest pain or arrhythmia, uncontrolled dehydration).`;
+Core Identity & Rules:
+1. You operate strictly as an engineering & operational wellness assistant — NOT a clinical medical authority or spacecraft flight controller.
+2. Truthful Data Discipline: Rely ONLY on the user-logged telemetry explicitly provided in [CURRENT ASTRONAUT TELEMETRY & LOGGED CONTEXT]. If any telemetry category is marked "NOT LOGGED YET", explicitly state that no data has been recorded yet for that category and NEVER invent, guess, or fabricate numbers.
+3. Comprehensive Space Medicine & Engineering Knowledge: Microgravity fluid shift, Spaceflight-Associated Neuro-ocular Syndrome (SANS), circadian entrainment, ARED/T2 countermeasures, spine elongation, ECLSS life support, NASA OSDR open datasets, and Deep Space Network relativistic communication delays.
+4. Fluent Bilingual Dialogue: Reply in clear, natural, articulate Arabic (العربية الفصحى السلسة والواضحة) whenever the user writes in Arabic or sets language=ar; reply in crisp English when the user writes in English.
+5. Safety Protocol: For acute red-flag symptoms (resting dyspnea, sudden vision loss, chest pain, or life-support emergencies), immediately advise contacting the Crew Medical Officer (CMO) / Flight Surgeon via Private Medical Conference (PMC).`;
 
-// Advanced spaceflight cognitive engine fallback for seamless offline/uninterrupted dialogues
 function generateContextualAstronautResponse(
   query: string,
   userContext: any,
   lang: string
 ): string {
-  const q = query.toLowerCase();
+  const q = (query || '').toLowerCase().trim();
   const isAr = lang === 'ar' || /[\u0600-\u06FF]/.test(query);
 
-  const avgSleep = userContext?.avgSleep || '7h 25m';
-  const latestSleep = userContext?.latestSleepDuration || '7h 40m';
-  const stress = userContext?.latestStress || 2;
-  const mood = userContext?.latestMood || 4;
-  const energy = userContext?.latestEnergy || 4;
-  const respRate = userContext?.latestResp || 16;
-  const missionDay = userContext?.missionDay || 48;
+  const callsign = userContext?.callsign || (isAr ? 'رائد الفضاء' : 'Astronaut');
+  const missionName = userContext?.missionName || 'ISS Expedition 72';
+  const missionDay = userContext?.missionDay ?? null;
 
-  if (q.includes('sleep') || q.includes('نوم') || q.includes('عجز') || q.includes('تعب') || q.includes('tired')) {
+  const hasSleep = Boolean(userContext?.hasSleepData && userContext?.latestSleepDuration);
+  const hasWellness = Boolean(userContext?.hasWellnessData);
+  const hasResp = Boolean(userContext?.hasRespData && userContext?.latestResp != null);
+  const hasBody = Boolean(userContext?.hasBodyMetrics && userContext?.latestHeartRate != null);
+
+  const avgSleep = hasSleep ? userContext.avgSleep : (isAr ? 'غير مسجل بعد' : 'Not logged yet');
+  const latestSleep = hasSleep ? userContext.latestSleepDuration : (isAr ? 'غير مسجل بعد' : 'Not logged yet');
+  const stress = hasWellness ? `${userContext.latestStress}/5` : (isAr ? 'غير مسجل' : 'Not logged');
+  const mood = hasWellness ? `${userContext.latestMood}/5` : (isAr ? 'غير مسجل' : 'Not logged');
+  const energy = hasWellness ? `${userContext.latestEnergy}/5` : (isAr ? 'غير مسجل' : 'Not logged');
+  const respRate = hasResp ? `${userContext.latestResp} ${isAr ? 'نفس/دقيقة' : 'breaths/min'}` : (isAr ? 'غير مسجل بعد' : 'Not logged yet');
+  const heartRate = hasBody ? `${userContext.latestHeartRate} bpm (${userContext.latestBpSys}/${userContext.latestBpDia} mmHg)` : (isAr ? 'غير مسجل بعد' : 'Not logged yet');
+
+  // Greetings & general conversational intro
+  if (
+    /^(hi|hello|hey|good morning|good evening|hola|yo)\b/i.test(q) ||
+    /^(مرحبا|مرحبًا|اهلا|أهلا|أهلاً|السلام|هاي|هلو|صباح|مساء)/.test(q) ||
+    q.includes('من انت') || q.includes('who are you') || q.includes('what can you do') || q.includes('ماذا تستطيع')
+  ) {
     if (isAr) {
-      return `### 🛰️ تحليل النوم والراحة المدارية (اليوم ${missionDay} من المهمة)
+      return `### أهلاً بك يا ${callsign} في نواة ذكاء ASTRA
 
-بناءً على سجلاتك الفضائية المسجلة:
-• **مدة آخر نوم مسجلة**: ${latestSleep} (الهدف القياسي للمهمة: 8.0 ساعات).
-• **متوسط النوم الأسبوعي**: ${avgSleep}.
-• **مستوى الطاقة اليوم**: ${energy}/5.
+أنا مساعدك الهندسي والصحي للرحلات الفضائية ضمن مهمة **${missionName}**${missionDay ? ` (اليوم ${missionDay})` : ''}.
 
-#### 🔬 المنظور الفسيولوجي في الجاذبية الصغرى:
-في بيئة انعدام الوزن، يفقد الجسم حاسة الضغط اللمسي على الفراش (Lack of tactile bed contact)، مما يسبب استيقاظات ميكروية متكررة (Micro-arousals). كما أن الضجيج الصوتي المستمر لمراوح تهوية الوحدة ومستويات غاز ثاني أكسيد الكربون (CO₂) المتجمعة حول الرأس تمنع الوصول الكافي لمرحلة النوم العميق (Slow-Wave Sleep).
+**ملخص سجلاتك الحية المسجلة حالياً:**
+• **سجلات النوم**: ${hasSleep ? `${latestSleep} (المتوسط: ${avgSleep})` : 'لا توجد سجلات نوم مسجلة حتى الآن.'}
+• **التقييم النفسي**: ${hasWellness ? `المزاج ${mood} · التوتر ${stress} · الطاقة ${energy}` : 'لا توجد تقييمات نفسية مسجلة حتى الآن.'}
+• **معدل التنفس**: ${respRate}
+• **المؤشرات الجسدية**: ${heartRate}
 
-#### 🛡️ الإجراءات التشغيلية والوقائية الموصى بها:
-1. **تثبيت أربطة كيس النوم**: تأكدي من إحكام أحزمة الكتف لتقليل حركة الطفو الحرة أثناء مرحلة حركة العين السريعة (REM).
-2. **تدفق الهواء في المقصورة**: توجيه فتحة توزيع الهواء بزاوية 45 درجة لتشتيت جيب CO₂ المحيط بالرأس دون تعريض الوجه لتيار مباشر جاف.
-3. **مزامنة الإضاءة المدارية**: ارتداء قناع حجب الضوء المعتمد قبل 30 دقيقة من موعد النوم، وتعتيم شاشات الحواسيب لدعم إفراز الميلاتونين الطبيعي.
+يمكنك سؤالي بالعربية أو الإنجليزية عن أي موضوع: تحليل بياناتك المسجلة، النوم في انعدام الوزن، انزياح السوائل، آلام الظهر، حسابات تأخير الإشارة للمريخ، أو بروتوكولات طوارئ ناسا. بماذا نبدأ؟`;
+    }
+    return `### Welcome to ASTRA Intelligence Core, ${callsign}
 
-إذا استمر عجز النوم لأكثر من ليلتين قادمتين، سنحدد موعداً لمناقشة تعديل الجدول المداري مع طبيب الرحلة (Flight Surgeon).`;
+I am your spaceflight operational wellness and engineering companion for **${missionName}**${missionDay ? ` (Flight Day ${missionDay})` : ''}.
+
+**Your Currently Logged Telemetry:**
+• **Sleep Logs**: ${hasSleep ? `${latestSleep} (Average: ${avgSleep})` : 'No sleep records logged yet.'}
+• **Wellness Check-in**: ${hasWellness ? `Mood ${mood} · Stress ${stress} · Energy ${energy}` : 'No wellness logs recorded yet.'}
+• **Respiration**: ${respRate}
+• **Body Vitals**: ${heartRate}
+
+Ask me anything in Arabic or English — your logged telemetry trends, microgravity sleep & fluid shift, ARED countermeasures, Mars light-delay calculations, or NASA emergency checklists. How can I assist?`;
+  }
+
+  // User asking for telemetry status / my data / health analysis
+  if (
+    q.includes('سجلي') || q.includes('سجلاتي') || q.includes('بياناتي') || q.includes('حالتي') || q.includes('ملخص') ||
+    q.includes('my data') || q.includes('my health') || q.includes('status') || q.includes('summary') || q.includes('vitals') || q.includes('analyze') || q.includes('تحليل')
+  ) {
+    const anyData = hasSleep || hasWellness || hasResp || hasBody;
+    if (!anyData) {
+      return isAr
+        ? `### حالة السجلات الصحية الحالية (${callsign})
+
+لا توجد أي بيانات صحية أو حيوية مسجلة من قِبلك حتى الآن — جميع المؤشرات بدأت بسجل فارغ ونظيف لضمان عدم عرض أرقام غير حقيقية.
+
+**لتفعيل التحليل المخصص:**
+1. سجل فترة نوم في تبويب **إدارة النوم**.
+2. أضف قياساً حيوياً (نبض، ضغط، SpO₂) في **نواة الصحة** أو استورد ملف CSV/JSON.
+3. سجل تقييمك اليومي في **الرفاهية النفسية**.
+
+بمجرد تسجيل أول قياس، سأقوم بتحليل الاتجاهات وحساب الفجوات وتقديم توصيات مخصصة مدعومة بمصادر ناسا.`
+        : `### Current Telemetry Summary (${callsign})
+
+No user-logged sleep, wellness, respiratory, or biometric records have been entered yet. All logs start clean so zero fabricated numbers are presented as your measurements.
+
+**How to start tracking:**
+1. Log a sleep window in **Sleep Orbit**.
+2. Enter vitals (HR, BP, SpO₂) or import CSV/JSON in **Health Core**.
+3. Submit a check-in in **Wellness**.
+
+Once you log your first entry, I will analyze your real trends, check physiological bounds, and cite relevant spaceflight references.`;
+    }
+
+    return isAr
+      ? `### تحليل سجلاتك المسجلة (${callsign})
+• **النوم**: ${hasSleep ? `آخر نوم ${latestSleep} · المتوسط ${avgSleep}` : 'لم يُسجل بعد'}
+• **التوتر والطاقة**: ${hasWellness ? `التوتر ${stress} · المزاج ${mood} · الطاقة ${energy}` : 'لم يُسجل بعد'}
+• **التنفس**: ${respRate}
+• **القياسات الحيوية**: ${heartRate}
+
+*تنبيه غير تشخيصي: هذا ملخص هندسي وتشغيلي للقيم التي سجلتها فقط، ولا يغني عن تقييم طبيب الرحلة (Flight Surgeon).*`
+      : `### Logged Telemetry Analysis (${callsign})
+• **Sleep**: ${hasSleep ? `Latest ${latestSleep} · Avg ${avgSleep}` : 'Not logged yet'}
+• **Wellness**: ${hasWellness ? `Stress ${stress} · Mood ${mood} · Energy ${energy}` : 'Not logged yet'}
+• **Respiration**: ${respRate}
+• **Body Vitals**: ${heartRate}
+
+*Non-diagnostic note: Summary reflects strictly your recorded entries and does not substitute for Flight Surgeon evaluation.*`;
+  }
+
+  // Sleep & Circadian
+  if (q.includes('sleep') || q.includes('نوم') || q.includes('عجز') || q.includes('تعب') || q.includes('tired') || q.includes('ارهاق') || q.includes('إرهاق')) {
+    if (isAr) {
+      return `### تحليل النوم والراحة المدارية
+
+**البيانات المسجلة لديك:**
+• **آخر نوم مسجل**: ${latestSleep} (هدف المهمة القياسي: 8.0 ساعات).
+• **متوسط النوم**: ${avgSleep}.
+• **مستوى الطاقة المسجل**: ${energy}.
+
+#### التفسير الفسيولوجي في الجاذبية الصغرى:
+في انعدام الوزن يفقد الجسم الضغط اللمسي على الفراش، مما يزيد الاستيقاظات الميكروية، بينما تؤثر ضوضاء التهوية وتجمع جيوب ثاني أكسيد الكربون (CO₂) قرب الرأس على عمق النوم.
+
+#### خطوات وقائية مقترحة:
+1. إحكام أحزمة كيس النوم لتقليل الطفو الحر.
+2. ضبط فتحة التهوية بزاوية لتشتيت ثاني أكسيد الكربون دون تيار مباشر على العينين.
+3. استخدام قناع الإضاءة قبل 30 دقيقة من موعد النوم لضبط الإيقاع اليومي.`;
     } else {
-      return `### 🛰️ Sleep Architecture & Circadian Analysis (Flight Day ${missionDay})
+      return `### Orbital Sleep & Circadian Analysis
 
-Cross-referencing your flight telemetry:
-• **Latest Logged Quarters Rest**: ${latestSleep} (Target: 8.0h).
-• **7-Day Rolling Average**: ${avgSleep}.
-• **Recorded Cognitive Energy**: ${energy}/5.
+**Your Logged Baseline:**
+• **Latest Logged Sleep**: ${latestSleep} (Standard target: 8.0h).
+• **Rolling Average**: ${avgSleep}.
+• **Recorded Energy**: ${energy}.
 
-#### 🔬 Microgravity Physiology Insights:
-Without hydrostatic compression, the absence of tactile proprioception removes the normal somatosensory triggers for sleep onset. Furthermore, localized CO₂ micro-pockets in crew quarters and module ventilation acoustics frequently truncate Slow-Wave Sleep (SWS).
+#### Microgravity Physiology:
+Without downward tactile compression on a mattress, free-floating micro-arousals increase, while ventilation acoustics and localized CO₂ pockets around the head can truncate slow-wave sleep.
 
-#### 🛡️ Protocol-Aligned Countermeasures:
-1. **Sleep Restraint Tensioning**: Fasten the thoracic sleeping bag straps firmly to restore gentle tactile feedback and minimize free-floating startle reflexes.
-2. **Quarters Ventilation Optimization**: Adjust the air diffuser to a 45° angle to continuously scrub your exhalation zone of localized CO₂ buildup without drying corneal mucosa.
-3. **Circadian Entrainment**: Don the optical visor seal 30 minutes before sleep to protect your suprachiasmatic nucleus from orbital day/night cycles (16 sunrises every 24 hours).
-
-If your cumulative sleep deficit exceeds 3 consecutive nights, we will flag this for your scheduled Private Medical Conference (PMC).`;
+#### Operational Countermeasures:
+1. Tension sleep-restraint straps lightly for proprioceptive stability.
+2. Angle crew-quarters airflow diffuser to disperse exhaled CO₂ pockets.
+3. Use an optical visor seal 30 minutes prior to scheduled sleep to protect melatonin onset across 90-minute orbital day/night cycles.`;
     }
   }
 
   if (q.includes('fluid') || q.includes('انزياح') || q.includes('احتقان') || q.includes('face') || q.includes('وجه') || q.includes('sinus') || q.includes('جيوب') || q.includes('breath') || q.includes('تنفس')) {
     if (isAr) {
-      return `### 🫁 انزياح السوائل الرأسي والجهاز التنفسي في الفضاء
+      return `### انزياح السوائل الرأسي والجهاز التنفسي في الفضاء
 
-لقد راجعت مؤشراتك:
-• **معدل التنفس الحالي**: ${respRate} نفس/دقيقة (ضمن النطاق الاسمي 12–18).
-• **مستوى التوتر**: ${stress}/5.
+**بياناتك المسجلة:**
+• **معدل التنفس**: ${respRate}
+• **مستوى التوتر**: ${stress}
 
-#### 🔬 ما الذي يحدث فسيولوجياً في جسدك؟
-بمجرد الدخول في بيئة الجاذبية الصغرى، يختفي التدرج الهيدروستاتيكي الذي كان يسحب الدم نحو القدمين على الأرض. ينتج عن ذلك **انزياح ما بين 1.5 إلى 2 لتر من السوائل** نحو الصدر والرأس والرقبة:
-• **احتقان الأنف ("Space Snuffles")**: تورم الأغشية المخاطية الأنفية، مما يسبب الإحساس بالزكام وصعوبة التنفس الأنفي المريح.
-• **انتفاخ الوجه وجفون العين**: امتلاء الأنسجة الرخوة حول الحجاج العيني، وهو جزء طبيعي من متلازمة التكيف مع الفضاء (SAS).
-• **الضغط الوداجي**: ارتفاع الضغط الوريدي المركزي دون وجود فشل قلبي.
+#### التفسير الفسيولوجي:
+عند الدخول في الجاذبية الصغرى ينتقل ما يقارب **1.5 إلى 2 لتر من السوائل** نحو الصدر والرأس لغياب الشد الهيدروستاتيكي الأرضي، مما يفسر احتقان الأنف ("Space Snuffles") وانتفاخ الجفون في الأسابيع الأولى.
 
-#### 🛡️ التوجيه والخطوة الآمنة:
-- معدل تنفسك عند **${respRate}/دقيقة** طبيعي تماماً وغير متسارع.
-- **التخفيف المقترح**: شرب كميات معتدلة من الماء الدافئ الموزع بانتظام، واستخدام بخاخ المحلول الملحي المعتمد لترطيب الأغشية، وممارسة جلسة تنفس الصندوق (Box Breathing) في مقصورة المراقبة.
-- **حدود الأمان**: إذا شعرت بضيق تنفس حاد مفاجئ أثناء الراحة (Resting Dyspnea) أو ألم صدري غير مبرر، يجب إبلاغ مسؤول الطاقم الطبي (CMO) فوراً.`;
+#### التوصيات الآمنة:
+• الحفاظ على الترطيب المتوازن (~2400 مل/يوم) واستخدام بخاخ المحلول الملحي المعتمد عند اللزوم.
+• ${hasResp ? `معدل التنفس المسجل (${respRate}) يفيد في المتابعة الدورية.` : 'يوصى بتسجيل معدل التنفس في تبويب متابعة التنفس للمقارنة اليومية.'}
+• **حدود الأمان**: في حال ضيق التنفس المفاجئ أثناء الراحة أو ألم الصدر، يجب التواصل فوراً مع مسؤول الطاقم الطبي (CMO).`;
     } else {
-      return `### 🫁 Cephalad Fluid Shift & Respiratory Telemetry
+      return `### Cephalad Fluid Shift & Respiratory Telemetry
 
-Reviewing your parameters:
-• **Resting Respiratory Cadence**: ${respRate} breaths/min (Nominal envelope: 12–18).
-• **Perceived Stress Index**: ${stress}/5.
+**Your Logged Telemetry:**
+• **Respiratory Rate**: ${respRate}
+• **Stress Index**: ${stress}
 
-#### 🔬 The Biomechanics of Microgravity Cephalad Redistribution:
-In orbit, the elimination of gravity’s downward hydrostatic vector causes an immediate upward shift of approximately **1.5 to 2.0 liters of vascular and interstitial fluid** into the cephalic and thoraco-pulmonary spaces:
-• **Mucosal Engorgement ("Space Snuffles")**: Edema of the nasal turbinates creates persistent upper airway resistance, often prompting partial oral breathing during rest.
-• **Periorbital Fullness**: Typical facial puffiness and jugular venous engorgement that peak in early mission weeks.
-• **Pulmonary Diffusion**: Capillary blood volume in the lungs actually increases, slightly altering the ventilation-perfusion ($V_A/Q$) ratio.
+#### Physiological Mechanism:
+In microgravity, the absence of gravity's hydrostatic gradient shifts **1.5 to 2.0 liters of vascular and interstitial fluid** toward the thorax and head, commonly causing nasal mucosal fullness ("Space Snuffles") and periorbital puffiness.
 
-#### 🛡️ Operational Recommendations:
-- Your respiratory rate of **${respRate}/min** indicates stable autonomic balance.
-- **Comfort Protocols**: Utilize isotonic saline nasal spray to hydrate desquamating nasal mucosa; maintain 2,500 mL/day fluid intake to avoid compensatory dehydration.
-- **Safety Thresholds**: Nasal congestion is normal. However, if acute resting shortness of breath or substernal tightness develops, initiate CMO consultation immediately.`;
+#### Safe Countermeasures:
+• Maintain balanced hydration (~2,400 mL/day) and use approved isotonic saline spray for mucosal comfort.
+• ${hasResp ? `Your logged rate (${respRate}) supports trend tracking.` : 'Log your resting respiratory rate in Respiratory Orbit to establish a baseline.'}
+• **Safety Boundary**: Sudden resting dyspnea or chest tightness requires immediate Crew Medical Officer (CMO) consultation.`;
     }
   }
 
@@ -447,35 +522,56 @@ Do not argue with an agitated crewmember. Calmly escort them into a quiet, dark 
     }
   }
 
-  // General conversational spaceflight response
+  // Stress / mental wellness / isolation
+  if (q.includes('stress') || q.includes('توتر') || q.includes('mood') || q.includes('مزاج') || q.includes('قلق') || q.includes('عزلة') || q.includes('isolation')) {
+    return isAr
+      ? `### متابعة الرفاهية النفسية والتوتر المداري
+
+**السجل النفسي المسجل:**
+• **المزاج**: ${mood} · **التوتر**: ${stress} · **الطاقة**: ${energy}
+
+في المهمات طويلة الأمد تؤثر العزلة وضغط الجداول على التوازن العصبي:
+1. ممارسة **تنفس الصندوق (4 ثوانٍ شهيق · 4 حبس · 4 زفير)** لتنشيط العصب الحائر.
+2. تدوين التقييم اليومي في **الرفاهية النفسية** لمتابعة الاتجاه التراكمي.
+3. تخصيص وقت للتواصل مع العائلة أو طاقم التحكم عبر **Live Mission Link**.`
+      : `### Psychological Readiness & Stress Management
+
+**Logged Wellness Check-in:**
+• **Mood**: ${mood} · **Stress**: ${stress} · **Energy**: ${energy}
+
+During extended orbital missions, confinement and schedule compression elevate autonomic load:
+1. Practice **4-4-4 Box Breathing** in Respiratory Orbit to restore parasympathetic balance.
+2. Keep daily check-ins updated in **Wellness** to catch cumulative fatigue early.
+3. Schedule crew support comms via **Live Mission Link** when needed.`;
+  }
+
+  // General conversational response grounded strictly in real userContext
   if (isAr) {
-    return `### 🛰️ استجابة ASTRA المعرفية للتحكم بالصحة
+    return `### استجابة ASTRA (${callsign})
 
-أهلاً بك يا قائدة. بناءً على استفسارك ومراجعة وضعك المداري لليوم الـ ${missionDay} من المهمة:
+تلقيت استفسارك: **"${query}"**
 
-• **بياناتك المسجلة**: متوسط النوم (${avgSleep})، والتوتر (${stress}/5)، والتنفس (${respRate}/دقيقة) في حالة استقرار ممتازة.
-• **التكيف مع البيئة المدارية**: جهازك العصبي ومؤشراتك الحيوية تتكيف بسلاسة مع الروتين داخل المحطة.
+**وضع البيانات المسجلة حالياً (${missionName}):**
+• **النوم**: ${hasSleep ? `${latestSleep} (المتوسط: ${avgSleep})` : 'لا توجد سجلات بعد'}
+• **الرفاهية**: ${hasWellness ? `مزاج ${mood} · توتر ${stress} · طاقة ${energy}` : 'لا توجد سجلات بعد'}
+• **التنفس والمؤشرات الحيوية**: ${hasResp ? respRate : 'تنفس غير مسجل'} · ${hasBody ? heartRate : 'مؤشرات جسمية غير مسجلة'}
 
-كيف تفضلين متابعة النقاش؟
-1. **استعراض خطة النوم والراحة** لتقليل التوتر قبل وردية المساء.
-2. **مراجعة تمارين اليوم** على جهاز المقاومة ARED.
-3. **تفعيل موجه تنفس الصندوق (Box Breathing)** لمدة 3 دقائق لإعادة التوازن العصبي.`;
+*ملاحظة: يتم تشغيل وضع الاستجابة المحلية حالياً. لتحليل أعمق أو حسابات محددة، جرب كتابة موضوع مثل "النوم في الفضاء"، "انزياح السوائل"، "آلام الظهر"، "احسب تأخير الضوء للمريخ"، أو سؤالي عن أي بروتوكول طوارئ.*`;
   } else {
-    return `### 🛰️ ASTRA Cognitive Twin Mission Response
+    return `### ASTRA Response (${callsign})
 
-Acknowledged, Commander Chen. Synthesizing your query alongside Flight Day ${missionDay} parameters:
+I received your message: **"${query}"**
 
-• **Telemetry Snapshot**: 7-Day sleep (${avgSleep}), autonomic stress index (${stress}/5), and resting respiration (${respRate}/min) demonstrate steady operational stability.
-• **Mission Environment**: Cabin atmospheric levels, CO₂ scrubbing, and your logged self-assessments show strong adaptation.
+**Current Telemetry Context (${missionName}):**
+• **Sleep**: ${hasSleep ? `${latestSleep} (Avg: ${avgSleep})` : 'No records logged yet'}
+• **Wellness**: ${hasWellness ? `Mood ${mood} · Stress ${stress} · Energy ${energy}` : 'No records logged yet'}
+• **Respiration & Body Vitals**: ${hasResp ? respRate : 'Respiration not logged'} · ${hasBody ? heartRate : 'Body vitals not logged'}
 
-Where would you like to direct our focus next?
-1. **Review circadian recovery protocols** ahead of upcoming nightfall passes.
-2. **Fine-tune ARED loading parameters** for musculoskeletal conditioning.
-3. **Initiate an orbital box-breathing cadence** to optimize parasympathetic tone.`;
+*Note: Local cognitive engine responded. You can ask about your logged telemetry, sleep hygiene, cephalad fluid shift, spinal elongation, Mars light-delay calculations, NASA OSDR datasets, or any NASA emergency protocol.*`;
   }
 }
 
-// POST /api/chat - High-performance conversational endpoint
+// POST /api/chat - Conversational endpoint with Gemini + fast local fallback
 app.post('/api/chat', async (req, res) => {
   try {
     const { messages, userContext, language } = req.body;
@@ -486,36 +582,30 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const lastUserMessage = [...messages].reverse().find((m: any) => m && m.role === 'user')?.content || '';
-    const lang = language || 'en';
+    const lang = language || (/[\u0600-\u06FF]/.test(lastUserMessage) ? 'ar' : 'en');
 
-    // Build context summary from active telemetry & logs
+    // Build strictly truthful context summary from user-logged telemetry only
     let contextualPreamble = '';
     if (userContext) {
-      contextualPreamble = `\n[CURRENT ASTRONAUT TELEMETRY & LOGGED CONTEXT]:
-- Mission: ${userContext.missionName || 'ISS Expedition 72'}, Flight Day: ${userContext.missionDay || 48}
-- Latest Sleep Duration: ${userContext.latestSleepDuration || '7h 40m'} (Target: 8.0h)
-- 7-Day Average Sleep: ${userContext.avgSleep || '7h 25m'}
-- Recent Wellness: Mood ${userContext.latestMood || '4'}/5, Stress ${userContext.latestStress || '2'}/5, Energy ${userContext.latestEnergy || '4'}/5
-- Respiratory Rate: ${userContext.latestResp || '16'} breaths/min (Simulated baseline)
-- Logged Symptoms: ${userContext.loggedSymptoms?.length ? userContext.loggedSymptoms.join(', ') : 'None'}
-- Sleep Disturbances Noted: ${userContext.sleepDisturbances?.length ? userContext.sleepDisturbances.join(', ') : 'None'}
-- Language Preference: ${lang}\n`;
+      contextualPreamble = `\n[CURRENT ASTRONAUT TELEMETRY & LOGGED CONTEXT — STRICTLY VERIFIED]:
+- Astronaut Callsign: ${userContext.callsign || 'Astronaut'}
+- Mission: ${userContext.missionName || 'ISS Expedition 72'}${userContext.missionDay ? `, Flight Day: ${userContext.missionDay}` : ''}
+- Sleep Data Status: ${userContext.hasSleepData ? `Latest ${userContext.latestSleepDuration}, Average ${userContext.avgSleep} (${userContext.sleepCount || 0} records)` : 'NOT LOGGED YET (0 records — do NOT invent sleep numbers)'}
+- Wellness Data Status: ${userContext.hasWellnessData ? `Mood ${userContext.latestMood}/5, Stress ${userContext.latestStress}/5, Energy ${userContext.latestEnergy}/5` : 'NOT LOGGED YET (0 records — do NOT invent wellness scores)'}
+- Respiratory Data Status: ${userContext.hasRespData ? `${userContext.latestResp} breaths/min` : 'NOT LOGGED YET (0 records — do NOT invent respiratory rate)'}
+- Body Vitals Status: ${userContext.hasBodyMetrics ? `HR ${userContext.latestHeartRate} bpm, BP ${userContext.latestBpSys}/${userContext.latestBpDia} mmHg, SpO2 ${userContext.latestSpO2}%` : 'NOT LOGGED YET (0 records — do NOT invent heart rate or BP)'}
+- Logged Symptoms: ${userContext.loggedSymptoms?.length ? userContext.loggedSymptoms.join(', ') : 'None logged'}
+- Sleep Disturbances Noted: ${userContext.sleepDisturbances?.length ? userContext.sleepDisturbances.join(', ') : 'None logged'}
+- Preferred Language: ${lang}\n`;
     }
 
-    // If Gemini client is active, attempt calling Gemini with strictly valid multi-turn contents
+    // Attempt Gemini call with valid active model and strict 10s timeout guard
     if (aiClient && isValidApiKey) {
       try {
-        // Gemini multi-turn format requirements:
-        // 1. MUST start with role 'user'
-        // 2. Roles must alternate
-        // 3. Omit empty or invalid parts
         const rawTurns = messages.filter((m: any) => m && m.content && typeof m.content === 'string' && m.content.trim().length > 0);
-        
-        // Find first user index
         const firstUserIdx = rawTurns.findIndex((m: any) => m.role === 'user');
         const trimmedTurns = firstUserIdx >= 0 ? rawTurns.slice(firstUserIdx) : rawTurns;
 
-        // Build valid alternating contents
         const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
         let expectedRole = 'user';
 
@@ -528,43 +618,48 @@ app.post('/api/chat', async (req, res) => {
             });
             expectedRole = expectedRole === 'user' ? 'model' : 'user';
           } else if (contents.length > 0) {
-            // Append content to existing part if duplicate consecutive role
             contents[contents.length - 1].parts.push({ text: `\n${turn.content}` });
           }
         }
 
-        // If contents is valid and ends with user turn
         if (contents.length > 0) {
           const enhancedSystemInstruction = `${SYSTEM_INSTRUCTION}\n${contextualPreamble}`;
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Gemini request timed out after 10s')), 10000)
+          );
 
-          const response = await aiClient.models.generateContent({
-            model: 'gemini-3.8-flash',
-            contents: contents,
-            config: {
-              systemInstruction: enhancedSystemInstruction,
-            },
-          });
+          const response = await Promise.race([
+            aiClient.models.generateContent({
+              model: 'gemini-4-hydrogen',
+              contents,
+              config: {
+                systemInstruction: enhancedSystemInstruction,
+              },
+            }),
+            timeoutPromise,
+          ]);
 
           if (response && response.text) {
-            res.json({ reply: response.text, model: 'gemini-3.8-flash' });
+            res.json({ reply: response.text, model: 'gemini-4-hydrogen', engine: 'cloud' });
             return;
           }
         }
       } catch (geminiError: any) {
-        console.warn('Gemini generateContent encountered error, seamlessly invoking local cognitive engine:', geminiError?.message || geminiError);
-        // Do not 500! Gracefully fall through to the advanced spaceflight cognitive engine
+        console.warn('Gemini call unavailable, using local cognitive engine:', geminiError?.message || geminiError);
       }
     }
 
-    // Graceful, rich, expert spaceflight response (guarantees 100% uptime with zero 500 errors)
     const reply = generateContextualAstronautResponse(lastUserMessage, userContext, lang);
-    res.json({ reply, model: 'astra-spaceflight-engine' });
+    res.json({ reply, model: 'astra-local-engine', engine: 'local' });
   } catch (err: any) {
-    console.error('Fatal route handler catch:', err);
-    // Even in catastrophic error, return status 200 with a calm safe reply
-    res.status(200).json({ 
-      reply: 'Commander, telemetry communication link is stable. Your records are preserved locally in your quarters console. What topic would you like to explore?', 
-      model: 'astra-safety-node' 
+    console.error('Chat route error:', err);
+    const isArFallback = req.body?.language === 'ar';
+    res.status(200).json({
+      reply: isArFallback
+        ? 'تمت معالجة رسالتك عبر العقدة المحلية. يمكنك الاستفسار عن النوم أو التنفس أو حسابات التأخير أو طوارئ ناسا.'
+        : 'Message processed via local node. You can ask about sleep, respiration, light-delay calculations, or NASA protocols.',
+      model: 'astra-safety-node',
+      engine: 'local',
     });
   }
 });
@@ -775,6 +870,38 @@ app.post('/api/mission-link/sync-queue', (req, res) => {
 app.post('/api/mission-link/reset', (_req, res) => {
   missionMessagesStore = [...INITIAL_MISSION_MESSAGES];
   res.json({ status: 'RESET_SUCCESS', count: missionMessagesStore.length });
+});
+
+// GET /api/export-project.zip - Package project source cleanly into a downloadable ZIP
+app.get('/api/export-project.zip', (_req, res) => {
+  const rootDir = process.cwd();
+  const tmpZip = '/tmp/astra-project-export.zip';
+
+  const pythonScript = `
+import os, zipfile
+root = ${JSON.stringify(rootDir)}
+out = ${JSON.stringify(tmpZip)}
+exclude_dirs = {'node_modules', 'dist', '.git', '.aistudio', '__pycache__'}
+exclude_files = {'.env', '.env.local', '.DS_Store'}
+with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in exclude_dirs]
+        for f in filenames:
+            if f in exclude_files or f.endswith('.log'):
+                continue
+            full = os.path.join(dirpath, f)
+            rel = os.path.relpath(full, root)
+            zf.write(full, os.path.join('ASTRA-App', rel))
+`;
+
+  execFile('python3', ['-c', pythonScript], (err) => {
+    if (err || !fs.existsSync(tmpZip)) {
+      console.error('ZIP export failed:', err);
+      res.status(500).json({ error: 'Failed to create ZIP archive' });
+      return;
+    }
+    res.download(tmpZip, 'ASTRA-Astronaut-Health-Companion.zip');
+  });
 });
 
 // Vite Middleware integration for development

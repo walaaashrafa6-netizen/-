@@ -24,13 +24,16 @@ import {
   saveTasks,
   getSavedBadges,
   saveBadges,
-  resetAllStorageData 
+  resetAllStorageData,
+  loadDemoMissionRecords
 } from './utils/storage';
 import { 
   getSavedBodyMetrics, 
   saveBodyMetrics, 
   getSavedHealthEvents, 
-  saveHealthEvents 
+  saveHealthEvents,
+  loadDemoBodyAndEventRecords,
+  clearHealthCoreStorage
 } from './utils/healthCoreEngine';
 import { TRANSLATIONS } from './utils/translations';
 import { AstraSidebar } from './components/AstraSidebar';
@@ -60,6 +63,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [showAppIconModal, setShowAppIconModal] = useState<boolean>(false);
+  const [pendingAiPrompt, setPendingAiPrompt] = useState<string | null>(null);
 
   const [sleepRecords, setSleepRecords] = useState<SleepRecord[]>(() => getSavedSleepRecords());
   const [wellnessRecords, setWellnessRecords] = useState<WellnessRecord[]>(() => getSavedWellnessRecords());
@@ -215,19 +219,42 @@ export default function App() {
     saveProfile(p);
   };
 
-  // Demo reset
-  const handleResetData = () => {
+  // Clear all user logs & reset to clean state
+  const handleResetData = (skipConfirm = false) => {
     const t = TRANSLATIONS[lang];
-    if (window.confirm(t.resetConfirm)) {
+    if (skipConfirm || window.confirm(t.resetConfirm)) {
       resetAllStorageData();
-      setSleepRecords(getSavedSleepRecords());
-      setWellnessRecords(getSavedWellnessRecords());
-      setRespiratoryRecords(getSavedRespiratoryRecords());
+      clearHealthCoreStorage();
+      try {
+        localStorage.removeItem('astra_chat_history');
+        localStorage.removeItem('astra_intel_chat_history_v2');
+      } catch {}
+      setSleepRecords([]);
+      setWellnessRecords([]);
+      setRespiratoryRecords([]);
+      setBodyMetrics([]);
+      setHealthEvents([]);
       setTasks(getSavedTasks());
       setBadges(getSavedBadges());
       setProfile(getSavedProfile());
       setCurrentTab('overview');
     }
+  };
+
+  // Explicit opt-in sample demo dataset loader
+  const handleLoadDemoData = () => {
+    const { sleep, wellness, respiratory } = loadDemoMissionRecords();
+    const { bodyMetrics: demoMetrics, healthEvents: demoEvents } = loadDemoBodyAndEventRecords();
+    setSleepRecords(sleep);
+    setWellnessRecords(wellness);
+    setRespiratoryRecords(respiratory);
+    setBodyMetrics(demoMetrics);
+    setHealthEvents(demoEvents);
+  };
+
+  const handleAskAi = (prompt: string) => {
+    setPendingAiPrompt(prompt);
+    setCurrentTab('intelligence');
   };
 
   return (
@@ -311,7 +338,7 @@ export default function App() {
         <AstraTopNav
           lang={lang}
           onToggleLang={handleToggleLang}
-          onResetData={handleResetData}
+          onResetData={() => handleResetData(false)}
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -327,11 +354,14 @@ export default function App() {
               wellnessRecords={wellnessRecords}
               respiratoryRecords={respiratoryRecords}
               bodyMetrics={bodyMetrics}
+              profile={profile}
               tasks={tasks}
               onToggleTask={handleToggleTask}
               onAddTask={handleAddTask}
               badges={badges}
               onNavigate={setCurrentTab}
+              onAskAi={handleAskAi}
+              onLoadDemoData={handleLoadDemoData}
               lang={lang}
             />
           )}
@@ -363,6 +393,10 @@ export default function App() {
               respiratoryRecords={respiratoryRecords}
               bodyMetrics={bodyMetrics}
               healthEvents={healthEvents}
+              profile={profile}
+              initialPrompt={pendingAiPrompt}
+              onClearInitialPrompt={() => setPendingAiPrompt(null)}
+              onNavigate={setCurrentTab}
               lang={lang}
             />
           )}
@@ -418,7 +452,8 @@ export default function App() {
             <SettingsView
               profile={profile}
               onUpdateProfile={handleUpdateProfile}
-              onResetData={handleResetData}
+              onResetData={() => handleResetData(true)}
+              onLoadDemoData={handleLoadDemoData}
               lang={lang}
             />
           )}
@@ -432,6 +467,10 @@ export default function App() {
               sleepRecords={sleepRecords}
               wellnessRecords={wellnessRecords}
               respiratoryRecords={respiratoryRecords}
+              bodyMetrics={bodyMetrics}
+              profile={profile}
+              initialPrompt={pendingAiPrompt}
+              onClearInitialPrompt={() => setPendingAiPrompt(null)}
               lang={lang}
             />
           )}

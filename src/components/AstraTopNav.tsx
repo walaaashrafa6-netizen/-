@@ -1,8 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Language } from '../types';
+import React from 'react';
+import { Language, ModuleTab } from '../types';
+import { TRANSLATIONS } from '../utils/translations';
 import { AstraLogo } from './AstraLogo';
-import { ASTRONAUT_PROFILE_EVENT, AstronautIdentity, getAstronautIdentity } from '../utils/astronautIdentity';
-import { Globe, Menu, Settings, Sparkles } from 'lucide-react';
+import { 
+  Menu, 
+  Globe, 
+  Orbit,
+  ShieldAlert,
+  Search,
+  Sparkles
+} from 'lucide-react';
 
 interface AstraTopNavProps {
   lang: Language;
@@ -10,38 +17,79 @@ interface AstraTopNavProps {
   onResetData: () => void;
   onOpenMobileMenu?: () => void;
   searchQuery: string;
-  onSearchChange: (query: string) => void;
+  onSearchChange: (q: string) => void;
   onOpenAssistant: () => void;
   onOpenEmergency?: () => void;
 }
 
-export const AstraTopNav: React.FC<AstraTopNavProps> = ({ lang, onToggleLang, onOpenMobileMenu, onOpenAssistant }) => {
-  const [astronaut, setAstronaut] = useState<AstronautIdentity>(() => getAstronautIdentity());
-  useEffect(() => {
-    const update = (event: Event) => setAstronaut((event as CustomEvent<AstronautIdentity>).detail || getAstronautIdentity());
-    window.addEventListener(ASTRONAUT_PROFILE_EVENT, update);
-    return () => window.removeEventListener(ASTRONAUT_PROFILE_EVENT, update);
-  }, []);
-  const isAr = lang === 'ar';
-  const astronautImage = '/assets/aistudio/file_00000000740082468d45c8f9dd0784f4_8c03b9ab.png';
+export const AstraTopNav: React.FC<AstraTopNavProps> = ({
+  lang,
+  onToggleLang,
+  onOpenMobileMenu,
+  onOpenAssistant,
+  onOpenEmergency,
+}) => {
+  const t = TRANSLATIONS[lang];
 
   return (
-    <header className="astra-topbar sticky top-0 z-30 px-4 py-3 sm:px-6">
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3">
+    <header className="sticky top-0 z-30 bg-[#07111F]/90 backdrop-blur-xl border-b border-[#162E48]/80 px-4 sm:px-6 py-3 transition-all">
+      <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
+        {/* Left: Mobile Menu & ASTRA Logo on small screens */}
         <div className="flex items-center gap-3">
-          <button type="button" onClick={onOpenMobileMenu} className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-slate-300 transition hover:border-cyan-200/30 hover:text-white lg:hidden" title={isAr ? 'القائمة' : 'Menu'}><Menu className="h-5 w-5"/></button>
-          <div className="flex items-center gap-2 lg:hidden"><AstraLogo size="sm" showText subtitle=""/></div>
-          <div className="hidden items-center gap-2 rounded-full border border-white/[0.08] bg-black/20 px-3 py-2 sm:flex"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_10px_#6ee7b7]"/><span className="text-[10px] text-slate-300">{isAr ? 'وحدة أسترا جاهزة' : 'ASTRA node ready'}</span></div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden items-center gap-2 rounded-full border border-white/[0.08] bg-black/20 px-3 py-2 md:flex"><Sparkles className="h-3.5 w-3.5 text-cyan-200"/><span className="text-[10px] text-slate-400">{astronaut.missionName}</span></div>
-          <button type="button" onClick={onOpenAssistant} className="hidden items-center gap-2 rounded-full border border-cyan-100/15 bg-cyan-100/[0.05] px-3 py-2 text-[10px] text-cyan-50 transition hover:border-cyan-100/30 sm:flex"><Sparkles className="h-3.5 w-3.5"/>{isAr ? 'اسأل أسترا' : 'Ask Astra'}</button>
-          <button type="button" onClick={onToggleLang} className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] text-slate-300 transition hover:border-cyan-100/30 hover:text-white" title={isAr ? 'تغيير اللغة' : 'Change language'}><Globe className="h-3.5 w-3.5 text-cyan-200"/>{isAr ? 'EN' : 'عربي'}</button>
-          <div className="flex max-w-[180px] items-center gap-2 rounded-full border border-white/[0.08] bg-black/20 py-1 pl-1 pr-3">
-            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-cyan-100/30 bg-[#101827]"><img src={astronautImage} alt={isAr ? 'رائد فضاء' : 'Astronaut'} className="h-full w-full object-cover object-[75%_15%]" onError={(event) => { event.currentTarget.style.display = 'none'; }}/></div>
-            <div className="min-w-0"><p className="truncate text-[10px] font-semibold text-white">{astronaut.displayName}</p><p className="truncate text-[9px] text-slate-500">{astronaut.rank}</p></div>
+          <button
+            onClick={onOpenMobileMenu}
+            className="lg:hidden p-2 rounded-xl bg-[#0C1B2B] border border-[#162E48] text-[#A9B8C8] hover:text-white"
+            title="Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <div className="flex lg:hidden items-center gap-2">
+            <AstraLogo size="sm" showText={true} subtitle="" />
           </div>
-          <span className="hidden h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 lg:flex" title={isAr ? 'عدّل بياناتك من الإعدادات' : 'Edit profile in Settings'}><Settings className="h-4 w-4"/></span>
+        </div>
+
+        {/* Right: Exactly matching reference image top right bar */}
+        <div className="flex items-center gap-2.5 sm:gap-3.5 ml-auto">
+          {/* 1. Node Mode (Offline Ready) Pill matching reference */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0C1B2B] border border-[#162E48] text-xs font-mono text-white shadow-inner">
+            <span className="w-2 h-2 rounded-full bg-[#35C98A] animate-pulse" />
+            <span className="text-[#F2F6FA] text-[11px] font-medium hidden sm:inline">Node Mode</span>
+            <span className="text-[#35C98A] text-[11px] font-mono">(Offline Ready)</span>
+          </div>
+
+          {/* 2. ISS Mission / Expedition 72 Pill matching reference */}
+          <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0C1B2B] border border-[#162E48] text-xs font-mono text-white">
+            {/* Spacecraft / Station vector icon */}
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#42C8F5]" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 8h16M4 16h16M10 4v16M14 4v16M2 12h20" strokeLinecap="round" />
+            </svg>
+            <span className="text-[#A9B8C8] text-[11px]">ISS Mission</span>
+            <span className="text-[#42C8F5] text-[11px] font-bold">Expedition 72</span>
+          </div>
+
+          {/* 3. Language Switcher */}
+          <button
+            onClick={onToggleLang}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-full bg-[#0C1B2B] border border-[#162E48] hover:border-[#42C8F5]/50 text-[#A9B8C8] hover:text-white transition-all cursor-pointer"
+            title="Toggle Language / تبديل اللغة"
+          >
+            <Globe className="w-3.5 h-3.5 text-[#42C8F5]" />
+            <span className="font-semibold">{lang === 'en' ? 'عربي' : 'EN'}</span>
+          </button>
+
+          {/* 4. Astronaut Avatar matching reference */}
+          <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full p-0.5 bg-gradient-to-tr from-[#42C8F5] via-[#11263A] to-[#8B7CFF] shadow-[0_0_15px_rgba(66,200,245,0.4)] cursor-pointer select-none">
+            <div className="w-full h-full rounded-full overflow-hidden bg-[#07111F] flex items-center justify-center">
+              <img
+                src="/assets/aistudio/file_00000000740082468d45c8f9dd0784f4_8c03b9ab.png"
+                alt="Astronaut Commander"
+                className="w-full h-full object-cover object-right-top scale-[2.2]"
+              />
+            </div>
+            {/* Active status ring indicator */}
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#35C98A] border-2 border-[#07111F]" />
+          </div>
         </div>
       </div>
     </header>
