@@ -2,80 +2,78 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-cosmos-bg: #07111F;
-  --color-cosmos-main: #0C1B2B;
-  --color-cosmos-secondary: #11263A;
-  --color-cosmos-border: #162E48;
-  --color-astra-cyan: #42C8F5;
-  --color-status-normal: #35C98A;
-  --color-status-warning: #F2B84B;
-  --color-status-emergency: #E85D65;
-  --color-text-primary: #F2F6FA;
-  --color-text-secondary: #A9B8C8;
-
+  --color-cosmos-bg: #050a14;
+  --color-cosmos-main: #0b1525;
+  --color-cosmos-secondary: #12243a;
+  --color-cosmos-border: #203954;
+  --color-astra-cyan: #56d7ff;
+  --color-status-normal: #55e0a1;
+  --color-status-warning: #ffc96a;
+  --color-status-emergency: #ff7184;
+  --color-text-primary: #f5f8ff;
+  --color-text-secondary: #a7bbd1;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --font-display: 'Chakra Petch', sans-serif;
 }
 
-:root {
-  color-scheme: dark;
-}
-
+:root { color-scheme: dark; }
+html { min-height: 100%; background: #050a14; scroll-behavior: smooth; }
 body {
-  font-family: var(--font-sans);
-  background-color: #07111F;
-  color: #F2F6FA;
+  min-height: 100vh;
+  margin: 0;
   overflow-x: hidden;
+  color: #f5f8ff;
+  font-family: var(--font-sans);
+  background-color: #050a14;
+  background-image:
+    radial-gradient(ellipse at 82% 0%, rgba(39, 114, 195, .16), transparent 38%),
+    radial-gradient(ellipse at 5% 55%, rgba(97, 59, 174, .10), transparent 36%),
+    radial-gradient(circle, rgba(191, 224, 255, .75) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(97, 198, 255, .55) 0 1px, transparent 1.5px),
+    linear-gradient(180deg, #050a14 0%, #07101e 56%, #050a14 100%);
+  background-size: auto, auto, 127px 127px, 197px 197px, auto;
+  background-position: center, center, 18px 22px, 82px 65px, center;
+  background-attachment: fixed;
 }
+button, input, textarea, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid rgba(86, 215, 255, .8); outline-offset: 3px; }
 
-/* Deep space with stars and celestial illumination */
 .bg-deep-cosmos {
-  background-color: #07111F;
-  background-image: 
-    radial-gradient(circle at 85% 15%, rgba(66, 200, 245, 0.10) 0%, transparent 45%),
-    radial-gradient(circle at 15% 85%, rgba(139, 124, 255, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(12, 27, 43, 0.4) 0%, transparent 70%),
-    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+  position: relative;
+  isolation: isolate;
+  background-color: transparent;
+  background-image:
+    linear-gradient(90deg, rgba(5, 10, 20, .70) 0%, rgba(5, 10, 20, .45) 55%, rgba(5, 10, 20, .30) 100%),
+    url('/assets/aistudio/file_00000000740082468d45c8f9dd0784f4_8c03b9ab.png'),
+    radial-gradient(circle at 85% 15%, rgba(66, 200, 245, .10) 0%, transparent 45%),
+    radial-gradient(circle at 15% 85%, rgba(139, 124, 255, .08) 0%, transparent 40%),
+    linear-gradient(to right, rgba(255,255,255,.012) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.012) 1px, transparent 1px);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, repeat;
+  background-position: center, right 12% top 6rem, center, center, center, center;
+  background-size: cover, min(72vw, 980px) auto, cover, cover, 56px 56px, 56px 56px;
+  background-attachment: fixed;
 }
 
-/* Aerospace Card Surface matching reference (#0C1B2B) */
-.glass-panel {
-  background: linear-gradient(135deg, rgba(12, 27, 43, 0.92) 0%, rgba(7, 17, 31, 0.96) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(66, 200, 245, 0.18);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.06);
+/* Shared aerospace-glass surfaces keep every module in the same visual system. */
+.glass-panel, .glass-panel-glow {
+  background: linear-gradient(145deg, rgba(12, 27, 45, .90), rgba(5, 11, 22, .94));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-color: rgba(96, 190, 245, .18);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255,255,255,.04);
 }
+.glass-panel-glow { border-color: rgba(86, 215, 255, .38); box-shadow: 0 14px 40px rgba(34, 160, 230, .13), inset 0 0 24px rgba(86, 215, 255, .035); }
+.astra-topbar { border-bottom: 1px solid rgba(133, 195, 234, .12); background: rgba(5, 10, 20, .74); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); }
 
-.glass-panel-glow {
-  background: linear-gradient(135deg, rgba(17, 38, 58, 0.92) 0%, rgba(12, 27, 43, 0.96) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(66, 200, 245, 0.35);
-  box-shadow: 0 10px 30px rgba(66, 200, 245, 0.14), inset 0 0 15px rgba(66, 200, 245, 0.06);
-}
+/* Ambient twinkles are intentionally subtle so text and telemetry stay readable. */
+@keyframes astra-twinkle { 0%, 100% { opacity: .25; } 50% { opacity: .75; } }
+.astra-starfield { background-image: radial-gradient(circle, rgba(204,236,255,.8) 0 1px, transparent 1.4px); background-size: 93px 93px; animation: astra-twinkle 7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 
-.glass-pill-active {
-  background: linear-gradient(90deg, #1A3E62 0%, #0099DD 100%);
-  color: #FFFFFF;
-  box-shadow: 0 4px 20px rgba(66, 200, 245, 0.35);
-}
-
-/* Subtle scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #07111F;
-}
-::-webkit-scrollbar-thumb {
-  background: #162E48;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #42C8F555;
-}
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: #050a14; }
+::-webkit-scrollbar-thumb { background: #203954; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #56d7ff88; }
